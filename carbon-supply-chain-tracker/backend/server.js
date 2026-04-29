@@ -39,7 +39,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 mins
-  max: 100
+  max: 1000
 });
 app.use(limiter);
 
@@ -54,6 +54,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/shipments', require('./routes/shipments'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/operations', require('./routes/operations'));
 
 // Root route
 app.get('/', (req, res) => {

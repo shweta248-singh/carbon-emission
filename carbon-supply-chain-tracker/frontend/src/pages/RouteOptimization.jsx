@@ -1,8 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/axios';
-import { Map, Navigation2, Zap, ArrowRight, ShieldCheck, Leaf } from 'lucide-react';
+import { Map as MapIcon, Navigation2, Zap, ArrowRight, ShieldCheck, Leaf, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
+
+// Leaflet imports
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet marker icon issue
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+// Map Recenter Component
+const RecenterMap = ({ origin, dest }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (origin && dest) {
+      const bounds = L.latLngBounds([origin, dest]);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    } else if (origin) {
+      map.setView(origin, 10);
+    } else if (dest) {
+      map.setView(dest, 10);
+    }
+  }, [origin, dest, map]);
+  return null;
+};
 
 const RouteOptimization = () => {
   const { t, i18n } = useTranslation();
@@ -14,6 +48,10 @@ const RouteOptimization = () => {
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [originCoords, setOriginCoords] = useState(null);
+  const [destCoords, setDestCoords] = useState(null);
+  const [mapError, setMapError] = useState('');
+  const [mapLoading, setMapLoading] = useState(false);
 
   useEffect(() => {
     const fetchUserPrefs = async () => {
@@ -32,16 +70,50 @@ const RouteOptimization = () => {
     fetchUserPrefs();
   }, [i18n]);
 
+  const geocodeCity = async (city) => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+      }
+      return null;
+    } catch (err) {
+      console.error('Geocoding error:', err);
+      return null;
+    }
+  };
+
   const handleOptimize = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setMapLoading(true);
+    setMapError('');
+    
     try {
+      // 1. Backend Optimization Result
       const response = await api.post('/shipments/optimize', formData);
       setResult(response.data.data);
+
+      // 2. Geocoding for Map
+      const [origin, dest] = await Promise.all([
+        geocodeCity(formData.originCity),
+        geocodeCity(formData.destinationCity)
+      ]);
+
+      if (!origin || !dest) {
+        setMapError('Location not found. Please check city names.');
+      } else {
+        setOriginCoords(origin);
+        setDestCoords(dest);
+      }
+
     } catch (err) {
       console.error(err);
+      setMapError('Failed to optimize route or load map.');
     } finally {
       setLoading(false);
+      setMapLoading(false);
     }
   };
 
@@ -128,37 +200,90 @@ const RouteOptimization = () => {
 
         {/* Right Side: Map & Results */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-          <div className="glass-card rounded-2xl p-1 flex-1 min-h-[400px] relative overflow-hidden flex items-center justify-center group">
-            {/* Map Placeholder */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none">
-              <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.2"/>
-                  </pattern>
-                </defs>
-                <rect width="100" height="100" fill="url(#grid)" />
-                {formData.originCity && formData.destinationCity && (
-                  <>
-                    <circle cx="20" cy="50" r="1.5" fill="#10b981" className="animate-pulse" />
-                    <circle cx="80" cy="40" r="1.5" fill="#f59e0b" className="animate-pulse" />
-                    <path d="M 20 50 Q 50 20 80 40" fill="none" stroke="url(#lineGradient)" strokeWidth="0.8" strokeDasharray="2 2" className="animate-[dash_20s_linear_infinite]" />
-                    <defs>
-                      <linearGradient id="lineGradient">
-                        <stop offset="0%" stopColor="#10b981" />
-                        <stop offset="100%" stopColor="#f59e0b" />
-                      </linearGradient>
-                    </defs>
-                  </>
-                )}
-              </svg>
-            </div>
-            
-            <div className="relative z-10 flex flex-col items-center text-center p-8 bg-slate-900/60 rounded-xl backdrop-blur-sm border border-slate-700/50 max-w-sm">
-              <Map className="w-12 h-12 text-slate-400 mb-4" />
-              <h4 className="text-white font-medium mb-2">{t('optimization.map_ready') || 'Map Integration Ready'}</h4>
-              <p className="text-slate-400 text-sm">{t('optimization.map_desc') || 'Configure Google Maps or Mapbox API to display interactive routes here.'}</p>
-            </div>
+          <div className="glass-card rounded-2xl p-0 flex-1 min-h-[450px] relative overflow-hidden border border-slate-700/50 shadow-inner">
+            {/* Real Map Integration */}
+            <MapContainer 
+              center={[20, 0]} 
+              zoom={2} 
+              style={{ height: '100%', width: '100%', background: '#0f172a' }}
+              zoomControl={false}
+              className="z-0"
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              />
+              
+              {originCoords && (
+                <Marker position={originCoords}>
+                  <Popup>
+                    <div className="text-slate-900 font-medium">
+                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Origin</p>
+                      {formData.originCity}
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {destCoords && (
+                <Marker position={destCoords}>
+                  <Popup>
+                    <div className="text-slate-900 font-medium">
+                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Destination</p>
+                      {formData.destinationCity}
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {originCoords && destCoords && (
+                <Polyline 
+                  positions={[originCoords, destCoords]} 
+                  color="#10b981" 
+                  weight={3}
+                  opacity={0.8}
+                  dashArray="10, 10"
+                />
+              )}
+
+              <RecenterMap origin={originCoords} dest={destCoords} />
+            </MapContainer>
+
+            {/* Map Overlay for Loading or Errors */}
+            {(mapLoading || mapError || (!originCoords && !destCoords)) && (
+              <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-slate-950/40 backdrop-blur-[2px] pointer-events-none">
+                <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-700/50 shadow-2xl max-w-xs text-center pointer-events-auto transform transition-all animate-in fade-in zoom-in duration-300">
+                  {mapLoading ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="relative">
+                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                        <MapPin className="w-4 h-4 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                      </div>
+                      <p className="text-white font-medium">Mapping route...</p>
+                    </div>
+                  ) : mapError ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <AlertCircle className="w-10 h-10 text-red-400" />
+                      <p className="text-white font-medium">{mapError}</p>
+                      <button 
+                        onClick={() => setMapError('')}
+                        className="text-xs text-slate-400 hover:text-white underline underline-offset-4"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="p-3 bg-slate-800/50 rounded-full mb-2">
+                        <MapIcon className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <h4 className="text-white font-medium">Route Visualization</h4>
+                      <p className="text-slate-400 text-sm leading-relaxed">Enter your origin and destination cities to visualize the logistics path on the map.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {loading ? (

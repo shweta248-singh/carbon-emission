@@ -6,8 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Inventory from './pages/Inventory';
-import Shipments from './pages/Shipments';
+import OperationsHub from './pages/OperationsHub';
 import RouteOptimization from './pages/RouteOptimization';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
@@ -48,22 +47,11 @@ function App() {
         />
         
         <Route
-          path="/inventory"
+          path="/operations"
           element={
             <ProtectedRoute>
               <Layout>
-                <Inventory />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
-          path="/shipments"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Shipments />
+                <OperationsHub />
               </Layout>
             </ProtectedRoute>
           }

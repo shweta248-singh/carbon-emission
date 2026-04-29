@@ -7,8 +7,7 @@ const Sidebar = () => {
   const { t } = useTranslation();
   const links = [
     { name: t('sidebar.dashboard'), path: '/', icon: LayoutDashboard },
-    { name: t('sidebar.inventory'), path: '/inventory', icon: Box },
-    { name: t('sidebar.shipments'), path: '/shipments', icon: Truck },
+    { name: 'Operations Hub', path: '/operations', icon: Box },
     { name: t('sidebar.optimization'), path: '/optimization', icon: Zap },
     { name: t('sidebar.analytics'), path: '/analytics', icon: BarChart3 },
     { name: t('sidebar.settings'), path: '/settings', icon: Settings },

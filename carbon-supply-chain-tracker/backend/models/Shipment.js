@@ -45,6 +45,9 @@ const shipmentSchema = new mongoose.Schema({
   savingsKg: {
     type: Number,
   },
+  vehicleDetails: {
+    type: Object,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

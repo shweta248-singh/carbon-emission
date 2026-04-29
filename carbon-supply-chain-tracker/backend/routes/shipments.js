@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const Shipment = require('../models/Shipment');
+const Inventory = require('../models/Inventory');
 const { protect } = require('../middleware/auth');
 const router = express.Router();
 
@@ -40,9 +41,19 @@ router.post('/optimize', protect, async (req, res) => {
 // @access  Private
 router.post('/', protect, async (req, res) => {
   try {
-    const { inventoryId, originCity, destinationCity, distanceKm, vehicleType } = req.body;
+    const { inventoryId, originCity, destinationCity, distanceKm, vehicleType, vehicleDetails, quantity = 1 } = req.body;
 
-    // Call Python Optimizer Engine
+    // 1. Check Inventory
+    const inventoryItem = await Inventory.findById(inventoryId);
+    if (!inventoryItem) {
+      return res.status(404).json({ success: false, message: 'Inventory item not found' });
+    }
+
+    if (inventoryItem.quantity < quantity) {
+      return res.status(400).json({ success: false, message: 'Insufficient inventory quantity' });
+    }
+
+    // 2. Call Python Optimizer Engine
     let optimizationData = {};
     try {
       const response = await axios.post(`${process.env.OPTIMIZER_URL}/optimize`, {
@@ -52,9 +63,9 @@ router.post('/', protect, async (req, res) => {
       optimizationData = response.data;
     } catch (err) {
       console.error('Optimizer Engine Error:', err.message);
-      // Fallback or handle error
     }
 
+    // 3. Create Shipment
     const shipment = await Shipment.create({
       user: req.user.id,
       inventoryId,
@@ -62,11 +73,16 @@ router.post('/', protect, async (req, res) => {
       destination: destinationCity,
       distanceKm,
       vehicleType,
+      vehicleDetails,
       carbonEmissionKg: optimizationData.currentEmissionKg || 0,
       recommendedVehicle: optimizationData.recommendedVehicle || vehicleType,
       recommendedEmissionKg: optimizationData.recommendedEmissionKg || 0,
       savingsKg: optimizationData.savingsKg || 0,
     });
+
+    // 4. Deduct Inventory
+    inventoryItem.quantity -= quantity;
+    await inventoryItem.save();
 
     res.status(201).json({ success: true, data: shipment });
   } catch (error) {
