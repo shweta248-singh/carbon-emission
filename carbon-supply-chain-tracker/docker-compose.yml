@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  optimizer:
+    build: ./optimizer-engine
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - optimizer
+    environment:
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/carbon-tracker
+      - JWT_SECRET=supersecretkey123
+      - OPTIMIZER_URL=http://optimizer:8000
+      - FRONTEND_URL=http://localhost:5173
+      - NODE_ENV=production
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
