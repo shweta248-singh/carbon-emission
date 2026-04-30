@@ -55,6 +55,7 @@ app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/shipments', require('./routes/shipments'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/operations', require('./routes/operations'));
+app.use('/api/chatbot', require('./routes/chatbot'));
 
 // Root route
 app.get('/', (req, res) => {

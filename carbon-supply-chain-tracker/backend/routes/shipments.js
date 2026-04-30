@@ -41,7 +41,12 @@ router.post('/optimize', protect, async (req, res) => {
 // @access  Private
 router.post('/', protect, async (req, res) => {
   try {
-    const { inventoryId, originCity, destinationCity, distanceKm, vehicleType, vehicleDetails, quantity = 1 } = req.body;
+    const { 
+      inventoryId, originCity, destinationCity, distanceKm, vehicleType, 
+      quantity = 1,
+      vehicleNumber, vehicleModel, fuelType, loadCapacity, 
+      averageMileage, emissionFactor, driverName, transportCompany 
+    } = req.body;
 
     // 1. Check Inventory
     const inventoryItem = await Inventory.findById(inventoryId);
@@ -65,7 +70,15 @@ router.post('/', protect, async (req, res) => {
       console.error('Optimizer Engine Error:', err.message);
     }
 
-    // 3. Create Shipment
+    // 3. Calculate Emission
+    let carbonEmissionKg = 0;
+    if (emissionFactor && distanceKm) {
+      carbonEmissionKg = distanceKm * emissionFactor;
+    } else {
+      carbonEmissionKg = optimizationData.currentEmissionKg || 0;
+    }
+
+    // 4. Create Shipment
     const shipment = await Shipment.create({
       user: req.user.id,
       inventoryId,
@@ -73,8 +86,15 @@ router.post('/', protect, async (req, res) => {
       destination: destinationCity,
       distanceKm,
       vehicleType,
-      vehicleDetails,
-      carbonEmissionKg: optimizationData.currentEmissionKg || 0,
+      vehicleNumber,
+      vehicleModel,
+      fuelType,
+      loadCapacity,
+      averageMileage,
+      emissionFactor,
+      driverName,
+      transportCompany,
+      carbonEmissionKg,
       recommendedVehicle: optimizationData.recommendedVehicle || vehicleType,
       recommendedEmissionKg: optimizationData.recommendedEmissionKg || 0,
       savingsKg: optimizationData.savingsKg || 0,

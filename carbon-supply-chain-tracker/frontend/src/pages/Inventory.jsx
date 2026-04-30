@@ -35,9 +35,9 @@ const Inventory = () => {
   }, []);
 
   const getStockBadge = (quantity) => {
-    if (quantity === 0) return <Badge type="error">{t('inventory.stock_out') || 'Out of Stock'}</Badge>;
-    if (quantity < 50) return <Badge type="warning">{t('inventory.stock_low') || 'Low Stock'}</Badge>;
-    return <Badge type="success">{t('inventory.stock_in') || 'In Stock'}</Badge>;
+    if (quantity === 0) return <Badge type="error">{t('inventory.stock_out')}</Badge>;
+    if (quantity < 50) return <Badge type="warning">{t('inventory.stock_low')}</Badge>;
+    return <Badge type="success">{t('inventory.stock_in')}</Badge>;
   };
 
   const filteredInventory = inventory.filter(item => 
@@ -163,7 +163,7 @@ const Inventory = () => {
                   <tr key={item._id} className="hover:bg-slate-800/40 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="font-medium text-white">{item.productName}</div>
-                      <div className="text-xs text-slate-500 mt-0.5">{item.category || 'General'}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{item.category || t('inventory.category_general')}</div>
                     </td>
                     <td className="px-6 py-4 text-slate-300 font-mono text-xs">{item.sku}</td>
                     <td className="px-6 py-4 text-slate-300 font-medium">{item.quantity} units</td>
@@ -201,11 +201,11 @@ const Inventory = () => {
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-xl font-bold text-white mb-6">
-              {editingItem ? t('inventory.edit_product') || 'Edit Product' : t('inventory.add_product') || 'Add New Product'}
+              {editingItem ? t('inventory.edit_product') : t('inventory.add_product')}
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">{t('inventory.product_name') || 'Product Name'}</label>
+                <label className="text-sm font-medium text-slate-300">{t('inventory.product_name')}</label>
                 <input
                   type="text" required
                   className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
@@ -240,7 +240,7 @@ const Inventory = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">{t('inventory.category') || 'Category'}</label>
+                <label className="text-sm font-medium text-slate-300">{t('inventory.category')}</label>
                 <input
                   type="text"
                   className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"

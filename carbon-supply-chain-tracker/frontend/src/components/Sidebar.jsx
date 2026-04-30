@@ -7,7 +7,7 @@ const Sidebar = () => {
   const { t } = useTranslation();
   const links = [
     { name: t('sidebar.dashboard'), path: '/', icon: LayoutDashboard },
-    { name: 'Operations Hub', path: '/operations', icon: Box },
+    { name: t('sidebar.operations'), path: '/operations', icon: Box },
     { name: t('sidebar.optimization'), path: '/optimization', icon: Zap },
     { name: t('sidebar.analytics'), path: '/analytics', icon: BarChart3 },
     { name: t('sidebar.settings'), path: '/settings', icon: Settings },
@@ -16,7 +16,7 @@ const Sidebar = () => {
   return (
     <aside className="w-[260px] glass h-[calc(100vh-72px)] fixed top-[72px] left-0 z-40 p-5 border-r border-white/5 flex flex-col justify-between">
       <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-2">Menu</div>
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-2">{t('sidebar.menu')}</div>
         {links.map((link) => (
           <NavLink
             key={link.path}

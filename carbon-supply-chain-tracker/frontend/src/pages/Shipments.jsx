@@ -27,21 +27,12 @@ const Shipments = () => {
 
   const fetchData = async () => {
     try {
-      const [shipRes, invRes, userRes] = await Promise.all([
+      const [shipRes, invRes] = await Promise.all([
         api.get('/shipments'),
-        api.get('/inventory'),
-        api.get('/users/me')
+        api.get('/inventory')
       ]);
       setShipments(shipRes.data.data || []);
       setInventory(invRes.data.data || []);
-
-      // Apply language from user preferences
-      if (userRes.data?.data?.preferences?.language) {
-        const lang = userRes.data.data.preferences.language;
-        if (i18n.language !== lang) {
-          i18n.changeLanguage(lang);
-        }
-      }
     } catch (err) {
       console.error('Failed to fetch data:', err);
     } finally {
@@ -56,25 +47,25 @@ const Shipments = () => {
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
       case 'delivered':
-        return <Badge type="success">{t('dashboard.status_delivered') || 'Delivered'}</Badge>;
+        return <Badge type="success">{t('dashboard.status_delivered')}</Badge>;
       case 'in_transit':
       case 'in transit':
-        return <Badge type="info">{t('dashboard.status_in_transit') || 'In Transit'}</Badge>;
+        return <Badge type="info">{t('dashboard.status_in_transit')}</Badge>;
       case 'pending':
-        return <Badge type="warning">{t('dashboard.status_pending') || 'Pending'}</Badge>;
+        return <Badge type="warning">{t('dashboard.status_pending')}</Badge>;
       default:
-        return <Badge type="default">{status || t('dashboard.status_unknown') || 'Unknown'}</Badge>;
+        return <Badge type="default">{status || t('dashboard.status_unknown')}</Badge>;
     }
   };
 
   const updateStatus = async (id, status) => {
     try {
       await api.patch(`/shipments/${id}/status`, { status });
-      showNotification(`${t('shipments.status_updated_to') || 'Shipment marked as'} ${status.replace('_', ' ')}`);
+      showNotification(`${t('shipments.status_updated_to')} ${status.replace('_', ' ')}`);
       fetchData();
     } catch (err) {
       console.error('Failed to update status', err);
-      showNotification(t('shipments.status_error') || 'Failed to update shipment status', 'error');
+      showNotification(t('shipments.status_error'), 'error');
     }
   };
 
@@ -86,10 +77,10 @@ const Shipments = () => {
       await fetchData();
       setIsModalOpen(false);
       setFormData({ inventoryId: '', originCity: '', destinationCity: '', vehicleType: 'truck', distanceKm: '' });
-      showNotification(t('shipments.create_success') || 'Shipment created successfully');
+      showNotification(t('shipments.create_success'));
     } catch (err) {
       console.error(err);
-      showNotification(t('shipments.create_error') || 'Failed to create shipment', 'error');
+      showNotification(t('shipments.create_error'), 'error');
     } finally {
       setFormLoading(false);
     }
@@ -110,7 +101,7 @@ const Shipments = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">{t('sidebar.shipments')}</h1>
-          <p className="text-slate-400 mt-1">{t('shipments.subtitle') || 'Monitor logistics and carbon footprint per delivery.'}</p>
+          <p className="text-slate-400 mt-1">{t('shipments.subtitle')}</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -122,14 +113,14 @@ const Shipments = () => {
       </div>
 
       <div className="glass-card rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-6">{t('shipments.active_shipments') || 'Active Shipments'}</h3>
+        <h3 className="text-lg font-semibold text-white mb-6">{t('shipments.active_shipments')}</h3>
 
         {loading ? (
           <LoadingSpinner message={t('common.loading')} />
         ) : shipments.length === 0 ? (
           <EmptyState 
             title={t('dashboard.no_shipments')} 
-            description={t('shipments.empty_desc') || 'Create your first shipment to start tracking.'}
+            description={t('shipments.empty_desc')}
             icon={Navigation}
             action={
               <button onClick={() => setIsModalOpen(true)} className="bg-primary/20 text-primary hover:bg-primary/30 px-4 py-2 rounded-lg font-medium transition-colors text-sm border border-primary/30 mt-2">
@@ -144,8 +135,8 @@ const Shipments = () => {
                 <tr>
                   <th className="px-6 py-4 font-medium">{t('dashboard.tracking_id')}</th>
                   <th className="px-6 py-4 font-medium">{t('inventory.product')}</th>
-                  <th className="px-6 py-4 font-medium">{t('shipments.route') || 'Route'}</th>
-                  <th className="px-6 py-4 font-medium">{t('shipments.vehicle') || 'Vehicle'}</th>
+                  <th className="px-6 py-4 font-medium">{t('shipments.route')}</th>
+                  <th className="px-6 py-4 font-medium">{t('shipments.vehicle')}</th>
                   <th className="px-6 py-4 font-medium">{t('dashboard.carbon_emissions')}</th>
                   <th className="px-6 py-4 font-medium">{t('dashboard.status')}</th>
                   <th className="px-6 py-4 font-medium text-right">{t('inventory.actions')}</th>
@@ -169,19 +160,19 @@ const Shipments = () => {
                       <div className="text-xs text-slate-500 mt-1">{shipment.distanceKm} km total distance</div>
                     </td>
                     <td className="px-6 py-4 capitalize text-slate-300">
-                      {shipment.vehicleType}
+                      {t(`vehicles.${shipment.vehicleType}`) || shipment.vehicleType}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-medium text-red-400">{shipment.carbonEmissionKg?.toFixed(1) || 0} kg CO2</span>
                         {shipment.recommendedVehicle && shipment.recommendedVehicle !== shipment.vehicleType && (
                           <div className="text-[10px] text-slate-400 mt-0.5">
-                            Recommended: <span className="text-emerald-400 capitalize">{shipment.recommendedVehicle}</span>
+                            {t('optimization.recommended')}: <span className="text-emerald-400 capitalize">{t(`vehicles.${shipment.recommendedVehicle}`) || shipment.recommendedVehicle}</span>
                           </div>
                         )}
                         {shipment.savingsKg > 0 && (
                           <div className="text-[10px] text-emerald-500 font-medium mt-0.5">
-                            Est. Savings: {shipment.savingsKg?.toFixed(1)} kg
+                            {t('optimization.savings')}: {shipment.savingsKg?.toFixed(1)} kg
                           </div>
                         )}
                       </div>
@@ -230,25 +221,25 @@ const Shipments = () => {
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Truck className="w-5 h-5 text-primary" /> {t('shipments.create_title') || 'Create New Shipment'}
+              <Truck className="w-5 h-5 text-primary" /> {t('shipments.create_title')}
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">{t('shipments.select_item') || 'Select Inventory Item'}</label>
+                <label className="text-sm font-medium text-slate-300">{t('shipments.select_item')}</label>
                 <select
                   required
                   className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 appearance-none"
                   value={formData.inventoryId} onChange={(e) => setFormData({...formData, inventoryId: e.target.value})}
                 >
-                  <option value="" disabled>{t('shipments.select_product_placeholder') || 'Select a product...'}</option>
+                  <option value="" disabled>{t('shipments.select_product_placeholder')}</option>
                   {inventory.map(item => (
-                    <option key={item._id} value={item._id}>{item.productName} ({item.quantity} {t('inventory.in_stock') || 'in stock'})</option>
+                    <option key={item._id} value={item._id}>{item.productName} ({item.quantity} {t('inventory.in_stock')})</option>
                   ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">{t('shipments.origin_city') || 'Origin City'}</label>
+                  <label className="text-sm font-medium text-slate-300">{t('shipments.origin_city')}</label>
                   <input
                     type="text" required
                     className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
@@ -256,7 +247,7 @@ const Shipments = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">{t('shipments.dest_city') || 'Destination City'}</label>
+                  <label className="text-sm font-medium text-slate-300">{t('shipments.dest_city')}</label>
                   <input
                     type="text" required
                     className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
@@ -266,20 +257,20 @@ const Shipments = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">{t('shipments.vehicle_type') || 'Vehicle Type'}</label>
+                  <label className="text-sm font-medium text-slate-300">{t('shipments.vehicle_type')}</label>
                   <select
                     required
                     className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 appearance-none"
                     value={formData.vehicleType} onChange={(e) => setFormData({...formData, vehicleType: e.target.value})}
                   >
-                    <option value="truck">{t('settings.vehicle_truck') || 'Truck'}</option>
-                    <option value="van">{t('settings.vehicle_van') || 'Van'}</option>
-                    <option value="rail">{t('settings.vehicle_rail') || 'Rail'}</option>
-                    <option value="ship">{t('settings.vehicle_ship') || 'Ship'}</option>
+                    <option value="truck">{t('vehicles.truck')}</option>
+                    <option value="van">{t('vehicles.van')}</option>
+                    <option value="rail">{t('vehicles.rail')}</option>
+                    <option value="ship">{t('vehicles.ship')}</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">{t('shipments.distance') || 'Distance (km)'}</label>
+                  <label className="text-sm font-medium text-slate-300">{t('shipments.distance')}</label>
                   <input
                     type="number" required min="1"
                     className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
@@ -294,7 +285,7 @@ const Shipments = () => {
                   {t('common.cancel')}
                 </button>
                 <button type="submit" disabled={formLoading} className="bg-primary hover:bg-emerald-400 text-dark px-4 py-2 rounded-xl font-medium transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50">
-                  {formLoading ? t('shipments.creating') || 'Creating...' : t('shipments.create_button') || 'Create Shipment'}
+                  {formLoading ? t('shipments.creating') : t('shipments.create_button')}
                 </button>
               </div>
             </form>

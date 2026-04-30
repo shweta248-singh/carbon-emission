@@ -28,24 +28,15 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [analyticsRes, shipmentsRes, inventoryRes, userRes] = await Promise.all([
+      const [analyticsRes, shipmentsRes, inventoryRes] = await Promise.all([
         api.get('/analytics/dashboard'),
         api.get('/shipments'),
-        api.get('/inventory'),
-        api.get('/users/me')
+        api.get('/inventory')
       ]);
       
       setData(analyticsRes.data.data);
       setShipments(shipmentsRes.data.data || []);
       setInventory(inventoryRes.data.data || []);
-
-      // Apply language from user preferences
-      if (userRes.data?.data?.preferences?.language) {
-        const lang = userRes.data.data.preferences.language;
-        if (i18n.language !== lang) {
-          i18n.changeLanguage(lang);
-        }
-      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError(t('common.error') || 'Failed to load dashboard data. Please try again later.');
@@ -59,9 +50,21 @@ const Dashboard = () => {
   }, []);
 
   const downloadReport = () => {
-    if (shipments.length === 0) return alert('No shipment data available to export.');
+    if (shipments.length === 0) return alert(t('dashboard.no_shipments'));
 
-    const headers = ['Tracking ID', 'Product', 'Origin', 'Destination', 'Vehicle Type', 'Distance (km)', 'Emissions (kg)', 'Recommended Vehicle', 'Savings (kg)', 'Status', 'Created At'];
+    const headers = [
+      t('dashboard.tracking_id'), 
+      t('inventory.product_name'), 
+      t('dashboard.origin'), 
+      t('dashboard.destination'), 
+      t('shipments.vehicle_type'), 
+      t('shipments.distance'), 
+      t('dashboard.carbon_emissions'), 
+      t('optimization.recommended'), 
+      t('optimization.savings'), 
+      t('dashboard.status'), 
+      t('common.created_at')
+    ];
     
     const rows = shipments.map(s => [
       s._id,
@@ -96,8 +99,8 @@ const Dashboard = () => {
   const generateInsights = () => {
     if (shipments.length === 0) return [{ 
       type: 'info', 
-      title: 'Get Started', 
-      desc: 'Create your first shipment to generate sustainability insights.',
+      title: t('dashboard.insight_get_started'), 
+      desc: t('dashboard.insight_get_started_desc'),
       icon: Info
     }];
 
@@ -111,8 +114,8 @@ const Dashboard = () => {
     if (truckEmissions > 0) {
       insights.push({
         type: 'emerald',
-        title: 'Optimization Opportunity',
-        desc: `Switching pending truck shipments to rail could reduce your footprint significantly.`,
+        title: t('dashboard.insight_optimization'),
+        desc: t('dashboard.insight_optimization_desc'),
         icon: Zap
       });
     }
@@ -121,8 +124,8 @@ const Dashboard = () => {
     if (data?.totalSaved > 0) {
       insights.push({
         type: 'blue',
-        title: 'Efficiency Milestone',
-        desc: `Your supply chain optimizer has saved an estimated ${data.totalSaved.toFixed(1)} kg of CO2 so far!`,
+        title: t('dashboard.insight_milestone'),
+        desc: t('dashboard.insight_milestone_desc', { saved: data.totalSaved.toFixed(1) }),
         icon: TrendingDown
       });
     }
@@ -138,19 +141,19 @@ const Dashboard = () => {
     if (lowStockItems.length > 0) {
       alerts.push({
         type: 'warning',
-        title: 'Low Stock Warning',
-        desc: `${lowStockItems.length} items are running below safe thresholds.`,
+        title: t('dashboard.alert_low_stock'),
+        desc: t('dashboard.alert_low_stock_desc', { count: lowStockItems.length }),
         icon: AlertTriangle
       });
     }
 
-    // Delayed shipment alerts (Pending for more than 2 days - just demo logic)
+    // Delayed shipment alerts
     const pendingShipments = shipments.filter(s => s.status === 'pending');
     if (pendingShipments.length > 0) {
       alerts.push({
         type: 'slate',
-        title: 'Pending Action',
-        desc: `You have ${pendingShipments.length} shipments waiting to be dispatched.`,
+        title: t('dashboard.alert_pending'),
+        desc: t('dashboard.alert_pending_desc', { count: pendingShipments.length }),
         icon: Truck
       });
     }
@@ -158,13 +161,13 @@ const Dashboard = () => {
     return alerts;
   };
 
-  if (loading) return <LoadingSpinner message="Calculating your sustainability metrics..." />;
+  if (loading) return <LoadingSpinner message={t('dashboard.calculating_metrics')} />;
   if (error) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
       <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
-      <h2 className="text-2xl font-bold text-white mb-2">Oops! Something went wrong</h2>
+      <h2 className="text-2xl font-bold text-white mb-2">{t('common.oops')}</h2>
       <p className="text-slate-400 mb-6">{error}</p>
-      <button onClick={fetchData} className="bg-primary text-dark px-6 py-2 rounded-xl font-bold">Try Again</button>
+      <button onClick={fetchData} className="bg-primary text-dark px-6 py-2 rounded-xl font-bold">{t('common.try_again')}</button>
     </div>
   );
 
@@ -187,7 +190,7 @@ const Dashboard = () => {
             <Download size={18} /> {t('dashboard.download_report')}
           </button>
           <button 
-            onClick={() => navigate('/shipments')}
+            onClick={() => navigate('/operations')}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-emerald-400 text-dark rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]"
           >
             <Plus size={18} /> {t('dashboard.new_shipment')}
@@ -202,28 +205,28 @@ const Dashboard = () => {
           value={data?.totalInventory || 0}
           icon={Package}
           trend="up"
-          trendValue="Live"
+          trendValue={t('dashboard.trend_live')}
         />
         <StatCard
           title={t('dashboard.total_shipments')}
           value={data?.totalShipments || 0}
           icon={Truck}
           trend="up"
-          trendValue="Live"
+          trendValue={t('dashboard.trend_live')}
         />
         <StatCard
           title={t('dashboard.carbon_emissions')}
           value={`${data?.totalEmissions?.toFixed(1) || 0} kg`}
           icon={CloudFog}
           trend="down"
-          trendValue="Net"
+          trendValue={t('dashboard.trend_net')}
         />
         <StatCard
           title={t('dashboard.co2_saved')}
           value={`${data?.totalSaved?.toFixed(1) || 0} kg`}
           icon={TrendingDown}
           trend="up"
-          trendValue="Goal"
+          trendValue={t('dashboard.trend_goal')}
         />
       </div>
 
@@ -282,8 +285,8 @@ const Dashboard = () => {
         <div className="glass-card rounded-2xl p-6 col-span-1 lg:col-span-2 overflow-hidden">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-white">{t('dashboard.recent_shipments')}</h3>
-            <button onClick={() => navigate('/shipments')} className="text-xs text-primary hover:underline flex items-center gap-1">
-              {t('common.view_all') || 'View All'} <ChevronRight size={14} />
+            <button onClick={() => navigate('/operations')} className="text-xs text-primary hover:underline flex items-center gap-1">
+              {t('common.view_all')} <ChevronRight size={14} />
             </button>
           </div>
           <div className="overflow-x-auto">
@@ -315,7 +318,7 @@ const Dashboard = () => {
                         shipment.status === 'in_transit' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                         'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       }`}>
-                        {shipment.status?.replace('_', ' ').toUpperCase()}
+                        {t(`common.${shipment.status}`) || shipment.status?.replace('_', ' ').toUpperCase()}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-white font-medium">{shipment.carbonEmissionKg?.toFixed(1) || 0} kg</td>
@@ -351,13 +354,13 @@ const Dashboard = () => {
             
             <div className="mt-8 pt-6 border-t border-slate-800">
                <div className="bg-gradient-to-br from-primary/20 to-emerald-500/5 p-4 rounded-2xl border border-primary/20">
-                  <h4 className="text-white font-bold text-sm mb-1">Need assistance?</h4>
-                  <p className="text-xs text-slate-400 mb-3">Learn how to maximize your carbon savings.</p>
+                  <h4 className="text-white font-bold text-sm mb-1">{t('dashboard.need_assistance')}</h4>
+                  <p className="text-xs text-slate-400 mb-3">{t('dashboard.maximize_savings')}</p>
                   <button 
                     onClick={() => setShowHelpModal(true)}
                     className="w-full py-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-lg text-xs font-bold transition-all"
                   >
-                    View Documentation
+                    {t('common.view_docs')}
                   </button>
                </div>
             </div>
@@ -381,17 +384,17 @@ const Dashboard = () => {
                  <HelpCircle className="w-8 h-8" />
                </div>
                <div>
-                 <h2 className="text-2xl font-bold text-white">CarbonTrace Help</h2>
-                 <p className="text-slate-400 text-sm">System walkthrough and documentation.</p>
+                 <h2 className="text-2xl font-bold text-white">{t('dashboard.help_title')}</h2>
+                 <p className="text-slate-400 text-sm">{t('dashboard.help_subtitle')}</p>
                </div>
             </div>
 
             <div className="space-y-6">
               {[
-                { title: 'Inventory Management', desc: 'Add your sustainable products first. Define warehouse locations and track stock levels.', icon: Package },
-                { title: 'Shipment Tracking', desc: 'Create shipments from your inventory. Our engine calculates the carbon footprint for each route.', icon: Truck },
-                { title: 'Route Optimization', desc: 'Calculate and discover the most eco-friendly transport modes for any given distance.', icon: Zap },
-                { title: 'Sustainability Analytics', desc: 'Monitor your cumulative emissions, CO2 savings, and monthly milestones.', icon: TrendingDown },
+                { title: t('dashboard.help_inventory_title'), desc: t('dashboard.help_inventory_desc'), icon: Package },
+                { title: t('dashboard.help_shipment_title'), desc: t('dashboard.help_shipment_desc'), icon: Truck },
+                { title: t('dashboard.help_optimization_title'), desc: t('dashboard.help_optimization_desc'), icon: Zap },
+                { title: t('dashboard.help_analytics_title'), desc: t('dashboard.help_analytics_desc'), icon: TrendingDown },
               ].map((item, idx) => (
                 <div key={idx} className="flex gap-4">
                   <div className="p-2 h-fit bg-slate-800 rounded-lg text-slate-400">
@@ -409,7 +412,7 @@ const Dashboard = () => {
               onClick={() => setShowHelpModal(false)}
               className="w-full mt-8 py-3 bg-primary text-dark font-bold rounded-xl"
             >
-              Got it, thanks!
+              {t('common.got_it')}
             </button>
           </div>
         </div>

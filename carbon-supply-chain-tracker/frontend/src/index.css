@@ -10,13 +10,22 @@
   --color-card: rgba(30, 41, 59, 0.7);
 }
 :root {
+  --bg-darker: #020617;
+  --bg-dark: #0f172a;
+  --bg-gradient: radial-gradient(circle at top right, #0f172a, #020617);
+  --text-main: rgba(255, 255, 255, 0.9);
+  --text-dim: #94a3b8;
+  --glass-bg: rgba(30, 41, 59, 0.4);
+  --card-bg: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+  --border-color: rgba(255, 255, 255, 0.08);
+
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.9);
-  background-color: #020617; /* darker background */
+  color: var(--text-main);
+  background-color: var(--bg-darker);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -24,12 +33,27 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.light {
+  --bg-darker: #f8fafc;
+  --bg-dark: #f1f5f9;
+  --bg-gradient: radial-gradient(circle at top right, #f1f5f9, #f8fafc);
+  --text-main: #0f172a;
+  --text-dim: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --card-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+  --border-color: rgba(0, 0, 0, 0.08);
+  
+  color-scheme: light;
+  color: var(--text-main);
+  background-color: var(--bg-darker);
+}
+
 body {
   margin: 0;
   display: flex;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(circle at top right, #0f172a, #020617);
+  background: var(--bg-gradient);
 }
 
 #root {
@@ -37,16 +61,16 @@ body {
 }
 
 .glass {
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--glass-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
 }
 
 .glass-card {
-  background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 

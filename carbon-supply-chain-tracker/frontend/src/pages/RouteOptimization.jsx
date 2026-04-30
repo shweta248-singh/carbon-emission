@@ -53,22 +53,6 @@ const RouteOptimization = () => {
   const [mapError, setMapError] = useState('');
   const [mapLoading, setMapLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchUserPrefs = async () => {
-      try {
-        const userRes = await api.get('/users/me');
-        if (userRes.data?.data?.preferences?.language) {
-          const lang = userRes.data.data.preferences.language;
-          if (i18n.language !== lang) {
-            i18n.changeLanguage(lang);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch user preferences:', err);
-      }
-    };
-    fetchUserPrefs();
-  }, [i18n]);
 
   const geocodeCity = async (city) => {
     try {
@@ -102,7 +86,7 @@ const RouteOptimization = () => {
       ]);
 
       if (!origin || !dest) {
-        setMapError('Location not found. Please check city names.');
+        setMapError(t('optimization.location_not_found'));
       } else {
         setOriginCoords(origin);
         setDestCoords(dest);
@@ -110,7 +94,7 @@ const RouteOptimization = () => {
 
     } catch (err) {
       console.error(err);
-      setMapError('Failed to optimize route or load map.');
+      setMapError(t('optimization.failed'));
     } finally {
       setLoading(false);
       setMapLoading(false);
@@ -218,7 +202,7 @@ const RouteOptimization = () => {
                 <Marker position={originCoords}>
                   <Popup>
                     <div className="text-slate-900 font-medium">
-                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Origin</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{t('dashboard.origin')}</p>
                       {formData.originCity}
                     </div>
                   </Popup>
@@ -229,7 +213,7 @@ const RouteOptimization = () => {
                 <Marker position={destCoords}>
                   <Popup>
                     <div className="text-slate-900 font-medium">
-                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Destination</p>
+                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{t('dashboard.destination')}</p>
                       {formData.destinationCity}
                     </div>
                   </Popup>
@@ -259,7 +243,7 @@ const RouteOptimization = () => {
                         <Loader2 className="w-10 h-10 text-primary animate-spin" />
                         <MapPin className="w-4 h-4 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                       </div>
-                      <p className="text-white font-medium">Mapping route...</p>
+                      <p className="text-white font-medium">{t('optimization.mapping')}</p>
                     </div>
                   ) : mapError ? (
                     <div className="flex flex-col items-center gap-3">
@@ -269,7 +253,7 @@ const RouteOptimization = () => {
                         onClick={() => setMapError('')}
                         className="text-xs text-slate-400 hover:text-white underline underline-offset-4"
                       >
-                        Dismiss
+                        {t('common.dismiss')}
                       </button>
                     </div>
                   ) : (
@@ -277,8 +261,8 @@ const RouteOptimization = () => {
                       <div className="p-3 bg-slate-800/50 rounded-full mb-2">
                         <MapIcon className="w-8 h-8 text-slate-400" />
                       </div>
-                      <h4 className="text-white font-medium">Route Visualization</h4>
-                      <p className="text-slate-400 text-sm leading-relaxed">Enter your origin and destination cities to visualize the logistics path on the map.</p>
+                      <h4 className="text-white font-medium">{t('optimization.visualization')}</h4>
+                      <p className="text-slate-400 text-sm leading-relaxed">{t('optimization.enter_cities')}</p>
                     </div>
                   )}
                 </div>

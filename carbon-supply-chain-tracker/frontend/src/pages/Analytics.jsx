@@ -18,19 +18,8 @@ const Analytics = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [analyticsRes, userRes] = await Promise.all([
-          api.get('/analytics/dashboard'),
-          api.get('/users/me')
-        ]);
-        setData(analyticsRes.data.data);
-        
-        // Apply language from user preferences
-        if (userRes.data?.data?.preferences?.language) {
-          const lang = userRes.data.data.preferences.language;
-          if (i18n.language !== lang) {
-            i18n.changeLanguage(lang);
-          }
-        }
+        const response = await api.get('/analytics/dashboard');
+        setData(response.data.data);
       } catch (error) {
         console.error('Error fetching analytics:', error);
       } finally {
@@ -38,7 +27,7 @@ const Analytics = () => {
       }
     };
     fetchData();
-  }, [i18n]);
+  }, []);
 
   if (loading) return <LoadingSpinner message={t('common.loading')} />;
 
@@ -70,39 +59,39 @@ const Analytics = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title={t('analytics.efficiency_score') || 'Carbon Efficiency Score'}
+          title={t('analytics.efficiency_score')}
           value="A-"
           icon={Leaf}
           trend="up"
           trendValue="Top 15%"
-          subtitle={t('analytics.vs_industry') || 'vs industry average'}
+          subtitle={t('analytics.vs_industry')}
         />
         <StatCard
-          title={t('analytics.ytd_emissions') || 'YTD Total Emissions'}
+          title={t('analytics.ytd_emissions')}
           value={`${data?.totalEmissions?.toFixed(1) || 0} kg`}
           icon={Activity}
           trend="down"
           trendValue="12%"
-          subtitle={t('analytics.vs_last_year') || 'vs last year'}
+          subtitle={t('analytics.vs_last_year')}
         />
         <StatCard
-          title={t('analytics.ytd_saved') || 'YTD Total Saved'}
+          title={t('analytics.ytd_saved')}
           value={`${data?.totalSaved?.toFixed(1) || 0} kg`}
           icon={Wind}
           trend="up"
           trendValue="8%"
-          subtitle={t('analytics.vs_last_year') || 'vs last year'}
+          subtitle={t('analytics.vs_last_year')}
         />
         <StatCard
-          title={t('analytics.optimal_shipments') || 'Optimal Shipments'}
+          title={t('analytics.optimal_shipments')}
           value="84%"
           icon={TrendingDown}
-          subtitle={t('analytics.recommended_vehicle_used') || 'used recommended vehicle'}
+          subtitle={t('analytics.recommended_vehicle_used')}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard title={t('analytics.trends_chart') || 'Emission & Savings Trend'}>
+        <ChartCard title={t('analytics.trends_chart')}>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={emissionHistory} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
@@ -129,7 +118,7 @@ const Analytics = () => {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Vehicle Emission Comparison">
+        <ChartCard title={t('analytics.vehicle_comparison_chart')}>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={vehicleComparison} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
@@ -141,8 +130,8 @@ const Analytics = () => {
                 cursor={{ fill: '#334155', opacity: 0.4 }}
               />
               <Legend />
-              <Bar yAxisId="left" dataKey="emission" fill="#f59e0b" name="Avg Emission (kg/100km)" radius={[4, 4, 0, 0]} />
-              <Bar yAxisId="right" dataKey="avgDistance" fill="#3b82f6" name="Avg Distance (km)" radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="left" dataKey="emission" fill="#f59e0b" name={t('analytics.avg_emission_label')} radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="right" dataKey="avgDistance" fill="#3b82f6" name={t('analytics.avg_distance_label')} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -150,21 +139,21 @@ const Analytics = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-card rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Route Performance Analysis</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">{t('analytics.performance_analysis')}</h3>
           <div className="space-y-4">
             <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
               <div className="flex justify-between items-start mb-2">
                 <h4 className="text-emerald-400 font-medium flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  Best Performing Route
+                  {t('analytics.best_route')}
                 </h4>
-                <span className="text-xs text-slate-400">Last 30 Days</span>
+                <span className="text-xs text-slate-400">{t('analytics.last_30_days')}</span>
               </div>
               <p className="text-white text-lg font-semibold">Seattle → Portland</p>
               <div className="mt-2 flex items-center gap-4 text-sm text-slate-400">
-                <span>Vehicle: Rail</span>
-                <span>Avg. Emissions: 12kg</span>
-                <span className="text-emerald-400">-40% vs Avg</span>
+                <span>{t('operations.vehicle_type')}: {t('vehicles.rail')}</span>
+                <span>{t('operations.avg_emission')}: 12kg</span>
+                <span className="text-emerald-400">-40% {t('analytics.vs_avg')}</span>
               </div>
             </div>
 
@@ -172,31 +161,31 @@ const Analytics = () => {
               <div className="flex justify-between items-start mb-2">
                 <h4 className="text-red-400 font-medium flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-red-400"></span>
-                  Highest Impact Route
+                  {t('analytics.highest_impact')}
                 </h4>
-                <span className="text-xs text-slate-400">Needs Optimization</span>
+                <span className="text-xs text-slate-400">{t('analytics.needs_optimization')}</span>
               </div>
               <p className="text-white text-lg font-semibold">Denver → Chicago</p>
               <div className="mt-2 flex items-center gap-4 text-sm text-slate-400">
-                <span>Vehicle: Truck</span>
-                <span>Avg. Emissions: 340kg</span>
-                <span className="text-red-400">+25% vs Avg</span>
+                <span>{t('operations.vehicle_type')}: {t('vehicles.truck')}</span>
+                <span>{t('operations.avg_emission')}: 340kg</span>
+                <span className="text-red-400">+25% {t('analytics.vs_avg')}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div className="glass-card rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Sustainability Recommendations</h3>
+          <h3 className="text-lg font-semibold text-white mb-4">{t('analytics.recommendations')}</h3>
           <div className="space-y-4">
             <div className="flex items-start gap-4">
               <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center shrink-0 mt-0.5 border border-primary/30">
                 1
               </div>
               <div>
-                <h4 className="text-white font-medium">Shift Denver to Chicago route to Rail</h4>
+                <h4 className="text-white font-medium">{t('analytics.recommendation_1_title', { from: 'Denver', to: 'Chicago' })}</h4>
                 <p className="text-sm text-slate-400 mt-1">
-                  Replacing the current truck fleet with rail transport on this corridor can reduce emissions by up to 60% with only a 12-hour increase in transit time.
+                  {t('analytics.recommendation_1_desc')}
                 </p>
               </div>
             </div>
@@ -205,9 +194,9 @@ const Analytics = () => {
                 2
               </div>
               <div>
-                <h4 className="text-white font-medium">Consolidate shipments from Warehouse B</h4>
+                <h4 className="text-white font-medium">{t('analytics.recommendation_2_title')}</h4>
                 <p className="text-sm text-slate-400 mt-1">
-                  By waiting 24 hours to consolidate pending orders, you can reduce total trips by 15%, saving an estimated 200kg of CO2 weekly.
+                  {t('analytics.recommendation_2_desc')}
                 </p>
               </div>
             </div>

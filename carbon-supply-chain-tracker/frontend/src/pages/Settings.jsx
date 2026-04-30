@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/axios';
-import { Save, User, Lock, Bell, Globe, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Save, User, Lock, Bell, Settings as SettingsIcon, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Settings = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -17,10 +17,8 @@ const Settings = () => {
     email: '',
     company: '',
     preferences: {
-      theme: 'dark',
       defaultVehicle: 'truck',
-      carbonUnit: 'kg',
-      language: 'en'
+      carbonUnit: 'kg'
     },
     notifications: {
       emailAlerts: true,
@@ -42,21 +40,14 @@ const Settings = () => {
       const response = await api.get('/users/me');
       if (response.data.success) {
         const data = response.data.data;
-        const preferences = data.preferences || userData.preferences;
-        
         setUserData({
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
           company: data.company || '',
-          preferences: preferences,
+          preferences: data.preferences || userData.preferences,
           notifications: data.notifications || userData.notifications
         });
-
-        // Apply language from backend
-        if (preferences.language && i18n.language !== preferences.language) {
-          i18n.changeLanguage(preferences.language);
-        }
       }
     } catch (err) {
       console.error('Failed to fetch user data:', err);
@@ -113,13 +104,9 @@ const Settings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      await api.put('/users/preferences', userData.preferences);
-      
-      // Apply language change immediately
-      if (userData.preferences.language) {
-        await i18n.changeLanguage(userData.preferences.language);
-      }
-      
+      // Only update vehicle and carbon unit preferences
+      const { defaultVehicle, carbonUnit } = userData.preferences;
+      await api.put('/users/preferences', { defaultVehicle, carbonUnit });
       showMessage(t('common.success'));
     } catch (err) {
       showMessage(t('common.error'), 'error');
@@ -141,7 +128,7 @@ const Settings = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner message="Loading settings..." />;
+  if (loading) return <LoadingSpinner message={t('settings.loading')} />;
 
   const TabButton = ({ id, icon: Icon, label }) => (
     <button
@@ -184,7 +171,7 @@ const Settings = () => {
               <TabButton id="profile" icon={User} label={t('settings.profile')} />
               <TabButton id="security" icon={Lock} label={t('settings.security')} />
               <TabButton id="notifications" icon={Bell} label={t('settings.notifications')} />
-              <TabButton id="preferences" icon={Globe} label={t('settings.preferences')} />
+              <TabButton id="preferences" icon={SettingsIcon} label={t('settings.preferences')} />
             </nav>
           </div>
         </div>
@@ -192,7 +179,7 @@ const Settings = () => {
         <div className="lg:col-span-8 xl:col-span-9">
           {activeTab === 'profile' && (
             <div className="glass-card p-8 rounded-2xl border border-white/5">
-              <h3 className="text-xl font-bold text-white mb-6">{t('settings.profile_info') || 'Profile Information'}</h3>
+              <h3 className="text-xl font-bold text-white mb-6">{t('settings.profile_info')}</h3>
               <form onSubmit={handleProfileSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-1.5">
@@ -248,7 +235,7 @@ const Settings = () => {
 
           {activeTab === 'security' && (
             <div className="glass-card p-8 rounded-2xl border border-white/5">
-              <h3 className="text-xl font-bold text-white mb-6">{t('settings.security_settings') || 'Security Settings'}</h3>
+              <h3 className="text-xl font-bold text-white mb-6">{t('settings.security_settings')}</h3>
               <form onSubmit={handlePasswordSubmit} className="space-y-6">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-slate-400 ml-1">{t('settings.current_password')}</label>
@@ -298,14 +285,14 @@ const Settings = () => {
 
           {activeTab === 'notifications' && (
             <div className="glass-card p-8 rounded-2xl border border-white/5">
-              <h3 className="text-xl font-bold text-white mb-6">{t('settings.notification_prefs') || 'Notification Preferences'}</h3>
+              <h3 className="text-xl font-bold text-white mb-6">{t('settings.notification_prefs')}</h3>
               <form onSubmit={handleNotificationsSubmit} className="space-y-6">
                 <div className="space-y-4">
                   {[
-                    { id: 'emailAlerts', label: t('settings.notif_email') || 'Email Alerts', desc: t('settings.notif_email_desc') || 'Receive daily summary of emissions and logistics.' },
-                    { id: 'lowStockAlerts', label: t('settings.notif_stock') || 'Low Stock Alerts', desc: t('settings.notif_stock_desc') || 'Get notified when inventory items fall below threshold.' },
-                    { id: 'shipmentUpdates', label: t('settings.notif_shipment') || 'Shipment Updates', desc: t('settings.notif_shipment_desc') || 'Real-time status changes for your active shipments.' },
-                    { id: 'carbonReportAlerts', label: t('settings.notif_carbon') || 'Carbon Reports', desc: t('settings.notif_carbon_desc') || 'Monthly sustainability and carbon footprint analysis.' },
+                    { id: 'emailAlerts', label: t('settings.notif_email'), desc: t('settings.notif_email_desc') },
+                    { id: 'lowStockAlerts', label: t('settings.notif_stock'), desc: t('settings.notif_stock_desc') },
+                    { id: 'shipmentUpdates', label: t('settings.notif_shipment'), desc: t('settings.notif_shipment_desc') },
+                    { id: 'carbonReportAlerts', label: t('settings.notif_carbon'), desc: t('settings.notif_carbon_desc') },
                   ].map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-900/40 border border-slate-700/30">
                       <div>
@@ -334,7 +321,7 @@ const Settings = () => {
                     className="flex items-center justify-center gap-2 bg-primary hover:bg-emerald-400 text-dark px-6 py-3 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50"
                   >
                     {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                    Save Notification Settings
+                    {t('settings.save_notifications')}
                   </button>
                 </div>
               </form>
@@ -343,24 +330,12 @@ const Settings = () => {
 
           {activeTab === 'preferences' && (
             <div className="glass-card p-8 rounded-2xl border border-white/5">
-              <h3 className="text-xl font-bold text-white mb-6">{t('settings.system_prefs') || 'System Preferences'}</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">{t('settings.business_prefs')}</h3>
+                <span className="text-xs text-slate-500 italic">{t('settings.navbar_managed_hint')}</span>
+              </div>
               <form onSubmit={handlePreferencesSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400 ml-1">{t('settings.theme')}</label>
-                    <select 
-                      value={userData.preferences.theme}
-                      onChange={(e) => setUserData({
-                        ...userData, 
-                        preferences: { ...userData.preferences, theme: e.target.value }
-                      })}
-                      className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50"
-                    >
-                      <option value="dark">Dark Mode (Default)</option>
-                      <option value="light">Light Mode</option>
-                      <option value="system">System Default</option>
-                    </select>
-                  </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-400 ml-1">{t('settings.default_vehicle')}</label>
                     <select 
@@ -369,12 +344,12 @@ const Settings = () => {
                         ...userData, 
                         preferences: { ...userData.preferences, defaultVehicle: e.target.value }
                       })}
-                      className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50"
+                      className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all"
                     >
-                      <option value="truck">Truck</option>
-                      <option value="van">Van</option>
-                      <option value="rail">Rail</option>
-                      <option value="ship">Ship</option>
+                      <option value="truck">{t('vehicles.truck')}</option>
+                      <option value="van">{t('vehicles.van')}</option>
+                      <option value="rail">{t('vehicles.rail')}</option>
+                      <option value="ship">{t('vehicles.ship')}</option>
                     </select>
                   </div>
                   <div className="space-y-1.5">
@@ -385,26 +360,11 @@ const Settings = () => {
                         ...userData, 
                         preferences: { ...userData.preferences, carbonUnit: e.target.value }
                       })}
-                      className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50"
+                      className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50 transition-all"
                     >
-                      <option value="kg">Kilograms (kg)</option>
-                      <option value="ton">Metric Tons (t)</option>
-                      <option value="lb">Pounds (lb)</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-400 ml-1">{t('settings.language')}</label>
-                    <select 
-                      value={userData.preferences.language}
-                      onChange={(e) => setUserData({
-                        ...userData, 
-                        preferences: { ...userData.preferences, language: e.target.value }
-                      })}
-                      className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-primary/50"
-                    >
-                      <option value="en">English</option>
-                      <option value="hi">हिन्दी (Hindi)</option>
-                      <option value="es">Español (Spanish)</option>
+                      <option value="kg">{t('settings.unit_kg')}</option>
+                      <option value="ton">{t('settings.unit_ton')}</option>
+                      <option value="lb">{t('settings.unit_lb')}</option>
                     </select>
                   </div>
                 </div>

@@ -8,55 +8,25 @@ import {
   Plus, Search, Download, Box, Truck, BarChart3, 
   MapPin, Calendar, TrendingUp, Leaf, Activity,
   ChevronRight, Info, X, Filter, Trash2, Edit2, Train, Ship as ShipIcon,
-  LayoutDashboard
+  LayoutDashboard, Zap, User as UserIcon
 } from 'lucide-react';
 
 const VEHICLE_DATA = {
-  truck: {
-    label: 'Truck',
-    icon: Truck,
-    fuelType: 'Diesel',
-    model: 'Tata Signa 5530',
-    capacity: '30 Tons',
-    emission: '0.12 kg/km',
-    bestFor: 'Medium / Long Distance',
-    color: 'text-orange-400',
-    bg: 'bg-orange-400/10'
-  },
-  van: {
-    label: 'Van',
-    icon: Activity,
-    fuelType: 'Petrol / EV',
-    model: 'Mahindra Supro',
-    capacity: '1 Ton',
-    emission: '0.08 kg/km',
-    bestFor: 'Last Mile Delivery',
-    color: 'text-blue-400',
-    bg: 'bg-blue-400/10'
-  },
-  rail: {
-    label: 'Rail',
-    icon: Train,
-    fuelType: 'Electric / Diesel',
-    model: 'Freight Rail Wagon',
-    capacity: '60+ Tons',
-    emission: '0.03 kg/km',
-    bestFor: 'Bulk / Very Long Distance',
-    color: 'text-purple-400',
-    bg: 'bg-purple-400/10'
-  },
-  ship: {
-    label: 'Ship',
-    icon: ShipIcon,
-    fuelType: 'Marine Fuel',
-    model: 'Cargo Vessel',
-    capacity: '5000+ Tons',
-    emission: '0.01 kg/km',
-    bestFor: 'International / Massive Bulk',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-400/10'
-  }
+  truck: { label: 'Truck', icon: Truck, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+  mini_truck: { label: 'Mini Truck', icon: Truck, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+  van: { label: 'Van', icon: Activity, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+  pickup: { label: 'Pickup', icon: Truck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+  bike: { label: 'Bike', icon: Activity, color: 'text-slate-400', bg: 'bg-slate-400/10' },
+  electric_van: { label: 'Electric Van', icon: Zap, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
+  rail: { label: 'Rail', icon: Train, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  ship: { label: 'Ship', icon: ShipIcon, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+  air_cargo: { label: 'Air Cargo', icon: Activity, color: 'text-sky-400', bg: 'bg-sky-400/10' },
+  container_truck: { label: 'Container Truck', icon: Box, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+  refrigerated_truck: { label: 'Refrigerated Truck', icon: Box, color: 'text-blue-300', bg: 'bg-blue-300/10' },
+  ev_truck: { label: 'EV Truck', icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
 };
+
+const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric', 'Hybrid', 'Marine Fuel', 'Aviation Fuel'];
 
 const OperationsHub = () => {
   const { t } = useTranslation();
@@ -66,15 +36,42 @@ const OperationsHub = () => {
   const [inventory, setInventory] = useState([]);
   const [shipments, setShipments] = useState([]);
   const [search, setSearch] = useState('');
+
+  const VEHICLE_DATA = {
+    truck: { label: t('vehicles.truck'), icon: Truck, color: 'text-orange-400', bg: 'bg-orange-400/10' },
+    mini_truck: { label: t('vehicles.mini_truck'), icon: Truck, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    van: { label: t('vehicles.van'), icon: Activity, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+    pickup: { label: t('vehicles.pickup'), icon: Truck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    bike: { label: t('vehicles.bike'), icon: Activity, color: 'text-slate-400', bg: 'bg-slate-400/10' },
+    electric_van: { label: t('vehicles.electric_van'), icon: Zap, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
+    rail: { label: t('vehicles.rail'), icon: Train, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+    ship: { label: t('vehicles.ship'), icon: ShipIcon, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    air_cargo: { label: t('vehicles.air_cargo'), icon: Activity, color: 'text-sky-400', bg: 'bg-sky-400/10' },
+    container_truck: { label: t('vehicles.container_truck'), icon: Box, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+    refrigerated_truck: { label: t('vehicles.refrigerated_truck'), icon: Box, color: 'text-blue-300', bg: 'bg-blue-300/10' },
+    ev_truck: { label: t('vehicles.ev_truck'), icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
+  };
+
+  const FUEL_TYPES = [
+    t('operations.fuel_diesel') || 'Diesel', 
+    t('operations.fuel_petrol') || 'Petrol', 
+    t('operations.fuel_cng') || 'CNG', 
+    t('operations.fuel_electric') || 'Electric', 
+    t('operations.fuel_hybrid') || 'Hybrid', 
+    t('operations.fuel_marine') || 'Marine Fuel', 
+    t('operations.fuel_aviation') || 'Aviation Fuel'
+  ];
   
   // Modals
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isShipmentModalOpen, setIsShipmentModalOpen] = useState(false);
   const [productFormData, setProductFormData] = useState({ 
-    productName: '', sku: '', quantity: 0, warehouseLocation: '', category: '' 
+    productName: '', sku: '', quantity: '0', warehouseLocation: '', category: '' 
   });
   const [shipmentFormData, setShipmentFormData] = useState({
-    inventoryId: '', originCity: '', destinationCity: '', distanceKm: '', vehicleType: 'truck'
+    inventoryId: '', originCity: '', destinationCity: '', distanceKm: '', vehicleType: 'truck',
+    vehicleNumber: '', vehicleModel: '', fuelType: 'Diesel', loadCapacity: '', 
+    averageMileage: '', emissionFactor: '', driverName: '', transportCompany: ''
   });
   const [formLoading, setFormLoading] = useState(false);
 
@@ -104,12 +101,15 @@ const OperationsHub = () => {
     e.preventDefault();
     setFormLoading(true);
     try {
-      await api.post('/inventory', productFormData);
+      await api.post('/inventory', {
+        ...productFormData,
+        quantity: parseFloat(productFormData.quantity)
+      });
       await fetchData();
       setIsProductModalOpen(false);
-      setProductFormData({ productName: '', sku: '', quantity: 0, warehouseLocation: '', category: '' });
+      setProductFormData({ productName: '', sku: '', quantity: '0', warehouseLocation: '', category: '' });
     } catch (err) {
-      alert('Failed to save product');
+      alert(t('operations.save_error') || 'Failed to save product');
     } finally {
       setFormLoading(false);
     }
@@ -119,13 +119,24 @@ const OperationsHub = () => {
     e.preventDefault();
     setFormLoading(true);
     try {
-      const vehicleDetails = VEHICLE_DATA[shipmentFormData.vehicleType];
-      await api.post('/shipments', { ...shipmentFormData, vehicleDetails });
+      const payload = {
+        ...shipmentFormData,
+        distanceKm: parseFloat(shipmentFormData.distanceKm),
+        loadCapacity: shipmentFormData.loadCapacity ? parseFloat(shipmentFormData.loadCapacity) : undefined,
+        averageMileage: shipmentFormData.averageMileage ? parseFloat(shipmentFormData.averageMileage) : undefined,
+        emissionFactor: shipmentFormData.emissionFactor ? parseFloat(shipmentFormData.emissionFactor) : undefined,
+      };
+      
+      await api.post('/shipments', payload);
       await fetchData();
       setIsShipmentModalOpen(false);
-      setShipmentFormData({ inventoryId: '', originCity: '', destinationCity: '', distanceKm: '', vehicleType: 'truck' });
+      setShipmentFormData({
+        inventoryId: '', originCity: '', destinationCity: '', distanceKm: '', vehicleType: 'truck',
+        vehicleNumber: '', vehicleModel: '', fuelType: 'Diesel', loadCapacity: '', 
+        averageMileage: '', emissionFactor: '', driverName: '', transportCompany: ''
+      });
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to create shipment');
+      alert(err.response?.data?.message || t('shipments.create_error'));
     } finally {
       setFormLoading(false);
     }
@@ -136,15 +147,19 @@ const OperationsHub = () => {
     if (data.length === 0) return;
     
     const headers = type === 'inventory' 
-      ? ['Product Name', 'SKU', 'Quantity', 'Warehouse', 'Category']
-      : ['Origin', 'Destination', 'Vehicle', 'Distance (km)', 'Emission (kg)', 'Status', 'Date'];
+      ? [t('operations.product_name'), t('operations.sku'), t('operations.quantity'), t('operations.warehouse_location'), t('operations.category')]
+      : [t('dashboard.origin'), t('dashboard.destination'), t('operations.vehicle_type'), t('operations.vehicle_number'), t('operations.fuel_type'), t('operations.distance'), t('dashboard.carbon_emissions'), t('dashboard.status'), 'Date'];
       
     const csvRows = [headers.join(',')];
     
     data.forEach(item => {
       const row = type === 'inventory'
         ? [item.productName, item.sku, item.quantity, item.warehouseLocation, item.category]
-        : [item.origin, item.destination, item.vehicleType, item.distanceKm, item.carbonEmissionKg, item.status, new Date(item.createdAt).toLocaleDateString()];
+        : [
+            item.origin, item.destination, item.vehicleType, item.vehicleNumber, 
+            item.fuelType, item.distanceKm, item.carbonEmissionKg, item.status, 
+            new Date(item.createdAt).toLocaleDateString()
+          ];
       csvRows.push(row.map(v => `"${v}"`).join(','));
     });
     
@@ -157,17 +172,17 @@ const OperationsHub = () => {
   };
 
   const getStockBadge = (quantity) => {
-    if (quantity === 0) return <Badge type="error">Out of Stock</Badge>;
-    if (quantity < 50) return <Badge type="warning">Low Stock</Badge>;
-    return <Badge type="success">In Stock</Badge>;
+    if (quantity === 0) return <Badge type="error">{t('common.out_of_stock')}</Badge>;
+    if (quantity < 50) return <Badge type="warning">{t('common.low_stock')}</Badge>;
+    return <Badge type="success">{t('common.in_stock')}</Badge>;
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'delivered': return <Badge type="success">Delivered</Badge>;
-      case 'in_transit': return <Badge type="warning">In Transit</Badge>;
-      case 'cancelled': return <Badge type="error">Cancelled</Badge>;
-      default: return <Badge type="info">Pending</Badge>;
+      case 'delivered': return <Badge type="success">{t('common.delivered')}</Badge>;
+      case 'in_transit': return <Badge type="warning">{t('common.in_transit')}</Badge>;
+      case 'cancelled': return <Badge type="error">{t('common.cancelled')}</Badge>;
+      default: return <Badge type="info">{t('common.pending')}</Badge>;
     }
   };
 
@@ -179,10 +194,11 @@ const OperationsHub = () => {
   const filteredShipments = shipments.filter(item => 
     item.origin?.toLowerCase().includes(search.toLowerCase()) ||
     item.destination?.toLowerCase().includes(search.toLowerCase()) ||
-    item.vehicleType?.toLowerCase().includes(search.toLowerCase())
+    item.vehicleType?.toLowerCase().includes(search.toLowerCase()) ||
+    item.vehicleNumber?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading && !summary) return <LoadingSpinner message="Loading Operations Hub..." />;
+  if (loading && !summary) return <LoadingSpinner message={t('operations.loading')} />;
 
   return (
     <div className="space-y-8 fade-in pb-10">
@@ -191,9 +207,9 @@ const OperationsHub = () => {
         <div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <LayoutDashboard className="text-primary w-10 h-10" />
-            Operations Hub
+            {t('operations.title')}
           </h1>
-          <p className="text-slate-400 mt-2 text-lg">Manage inventory, create shipments, and track cumulative sustainability impact.</p>
+          <p className="text-slate-400 mt-2 text-lg">{t('operations.subtitle')}</p>
         </div>
         <div className="flex gap-3">
           <button 
@@ -201,28 +217,28 @@ const OperationsHub = () => {
             className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-3 rounded-xl font-semibold transition-all border border-slate-700 flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            Add Product
+            {t('operations.add_product')}
           </button>
           <button 
             onClick={() => setIsShipmentModalOpen(true)}
             className="bg-primary hover:bg-emerald-400 text-dark px-5 py-3 rounded-xl font-semibold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center gap-2"
           >
             <Truck className="w-5 h-5" />
-            Create Shipment
+            {t('operations.create_shipment')}
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Products" value={summary?.totalProducts || 0} icon={Box} color="primary" />
-        <StatCard title="Total Shipments" value={summary?.totalShipments || 0} icon={Truck} color="blue" />
-        <StatCard title="Total Distance" value={`${Math.round(summary?.totalDistance || 0)} km`} icon={MapPin} color="purple" />
-        <StatCard title="Total Emissions" value={`${Math.round(summary?.totalEmission || 0)} kg`} icon={Leaf} color="orange" />
-        <StatCard title="Total CO2 Saved" value={`${Math.round(summary?.totalSavings || 0)} kg`} icon={TrendingUp} color="emerald" />
-        <StatCard title="Avg Emission" value={`${Math.round(summary?.avgEmission || 0)} kg/ship`} icon={Activity} color="cyan" />
-        <StatCard title="Most Used Vehicle" value={summary?.mostUsedVehicle || 'N/A'} icon={BarChart3} color="indigo" uppercase />
-        <StatCard title="Last Shipment" value={summary?.lastShipmentDate ? new Date(summary.lastShipmentDate).toLocaleDateString() : 'N/A'} icon={Calendar} color="slate" />
+        <StatCard title={t('operations.total_products')} value={summary?.totalProducts || 0} icon={Box} color="primary" />
+        <StatCard title={t('operations.total_shipments')} value={summary?.totalShipments || 0} icon={Truck} color="blue" />
+        <StatCard title={t('operations.total_distance')} value={`${Math.round(summary?.totalDistance || 0)} km`} icon={MapPin} color="purple" />
+        <StatCard title={t('operations.total_emissions')} value={`${Math.round(summary?.totalEmission || 0)} kg`} icon={Leaf} color="orange" />
+        <StatCard title={t('operations.total_savings')} value={`${Math.round(summary?.totalSavings || 0)} kg`} icon={TrendingUp} color="emerald" />
+        <StatCard title={t('operations.avg_emission')} value={`${Math.round(summary?.avgEmission || 0)} kg/ship`} icon={Activity} color="cyan" />
+        <StatCard title={t('operations.most_used_vehicle')} value={summary?.mostUsedVehicle ? (t(`vehicles.${summary.mostUsedVehicle}`) || summary.mostUsedVehicle) : 'N/A'} icon={BarChart3} color="indigo" uppercase />
+        <StatCard title={t('operations.last_shipment')} value={summary?.lastShipmentDate ? new Date(summary.lastShipmentDate).toLocaleDateString() : 'N/A'} icon={Calendar} color="slate" />
       </div>
 
       {/* Main Content Area */}
@@ -235,14 +251,14 @@ const OperationsHub = () => {
               className={`px-6 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 ${activeTab === 'inventory' ? 'bg-primary text-dark shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
               <Box className="w-4 h-4" />
-              Inventory Records
+              {t('operations.inventory_records')}
             </button>
             <button 
               onClick={() => setActiveTab('shipments')}
               className={`px-6 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 ${activeTab === 'shipments' ? 'bg-primary text-dark shadow-lg' : 'text-slate-400 hover:text-white'}`}
             >
               <Truck className="w-4 h-4" />
-              Shipment Records
+              {t('operations.shipment_records')}
             </button>
           </div>
 
@@ -251,7 +267,7 @@ const OperationsHub = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary transition-colors" />
               <input 
                 type="text" 
-                placeholder={`Search ${activeTab}...`}
+                placeholder={t('operations.search_placeholder', { tab: activeTab === 'inventory' ? t('sidebar.inventory') : t('sidebar.shipments') })}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-slate-800/50 border border-white/5 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
@@ -260,7 +276,7 @@ const OperationsHub = () => {
             <button 
               onClick={() => exportCSV(activeTab)}
               className="p-2.5 bg-slate-800/50 border border-white/5 rounded-xl text-slate-400 hover:text-white hover:border-primary/30 transition-all"
-              title="Export CSV"
+              title={t('operations.export_csv')}
             >
               <Download className="w-5 h-5" />
             </button>
@@ -270,28 +286,28 @@ const OperationsHub = () => {
         {/* Table Content */}
         <div className="p-0">
           {activeTab === 'inventory' ? (
-            <InventoryTable data={filteredInventory} getStockBadge={getStockBadge} />
+            <InventoryTable t={t} data={filteredInventory} getStockBadge={getStockBadge} />
           ) : (
-            <ShipmentTable data={filteredShipments} getStatusBadge={getStatusBadge} />
+            <ShipmentTable t={t} VEHICLE_DATA={VEHICLE_DATA} data={filteredShipments} getStatusBadge={getStatusBadge} />
           )}
         </div>
       </div>
 
       {/* Product Modal */}
       {isProductModalOpen && (
-        <Modal title="Add New Product" onClose={() => setIsProductModalOpen(false)}>
+        <Modal title={t('operations.add_new_product')} onClose={() => setIsProductModalOpen(false)}>
           <form onSubmit={handleProductSubmit} className="space-y-4">
-            <FormField label="Product Name" required value={productFormData.productName} onChange={(v) => setProductFormData({...productFormData, productName: v})} />
+            <FormField label={t('operations.product_name')} required value={productFormData.productName} onChange={(v) => setProductFormData({...productFormData, productName: v})} />
             <div className="grid grid-cols-2 gap-4">
-              <FormField label="SKU" required value={productFormData.sku} onChange={(v) => setProductFormData({...productFormData, sku: v})} />
-              <FormField label="Quantity" type="number" required value={productFormData.quantity} onChange={(v) => setProductFormData({...productFormData, quantity: v})} />
+              <FormField label={t('operations.sku')} required value={productFormData.sku} onChange={(v) => setProductFormData({...productFormData, sku: v})} />
+              <FormField label={t('operations.quantity')} type="number" required value={productFormData.quantity} onChange={(v) => setProductFormData({...productFormData, quantity: v})} />
             </div>
-            <FormField label="Warehouse Location" required value={productFormData.warehouseLocation} onChange={(v) => setProductFormData({...productFormData, warehouseLocation: v})} />
-            <FormField label="Category" value={productFormData.category} onChange={(v) => setProductFormData({...productFormData, category: v})} />
+            <FormField label={t('operations.warehouse_location')} required value={productFormData.warehouseLocation} onChange={(v) => setProductFormData({...productFormData, warehouseLocation: v})} />
+            <FormField label={t('operations.category')} value={productFormData.category} onChange={(v) => setProductFormData({...productFormData, category: v})} />
             <div className="pt-6 flex gap-3">
-              <button type="button" onClick={() => setIsProductModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-400 hover:bg-slate-800 transition-all">Cancel</button>
+              <button type="button" onClick={() => setIsProductModalOpen(false)} className="flex-1 py-3 rounded-xl font-bold text-slate-400 hover:bg-slate-800 transition-all">{t('common.cancel')}</button>
               <button type="submit" disabled={formLoading} className="flex-1 bg-primary hover:bg-emerald-400 text-dark py-3 rounded-xl font-bold transition-all disabled:opacity-50">
-                {formLoading ? 'Saving...' : 'Save Product'}
+                {formLoading ? t('common.saving') : t('operations.save_product')}
               </button>
             </div>
           </form>
@@ -300,82 +316,95 @@ const OperationsHub = () => {
 
       {/* Shipment Modal */}
       {isShipmentModalOpen && (
-        <Modal title="Create New Shipment" onClose={() => setIsShipmentModalOpen(false)} wide>
-          <form onSubmit={handleShipmentSubmit} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-400">Select Product</label>
-                <select 
-                  required
-                  className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50"
-                  value={shipmentFormData.inventoryId}
-                  onChange={(e) => setShipmentFormData({...shipmentFormData, inventoryId: e.target.value})}
-                >
-                  <option value="">Choose a product...</option>
-                  {inventory.map(item => (
-                    <option key={item._id} value={item._id} disabled={item.quantity === 0}>
-                      {item.productName} ({item.quantity} available)
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Origin City" required value={shipmentFormData.originCity} onChange={(v) => setShipmentFormData({...shipmentFormData, originCity: v})} />
-                <FormField label="Destination City" required value={shipmentFormData.destinationCity} onChange={(v) => setShipmentFormData({...shipmentFormData, destinationCity: v})} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Distance (km)" type="number" required value={shipmentFormData.distanceKm} onChange={(v) => setShipmentFormData({...shipmentFormData, distanceKm: v})} />
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-400">Vehicle Type</label>
-                  <select 
-                    className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50"
-                    value={shipmentFormData.vehicleType}
-                    onChange={(e) => setShipmentFormData({...shipmentFormData, vehicleType: e.target.value})}
-                  >
-                    <option value="truck">Truck</option>
-                    <option value="van">Van</option>
-                    <option value="rail">Rail</option>
-                    <option value="ship">Ship</option>
-                  </select>
+        <Modal title={t('operations.create_new_shipment')} onClose={() => setIsShipmentModalOpen(false)} wide>
+          <form onSubmit={handleShipmentSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Route & Product Section */}
+              <div className="space-y-6">
+                <h4 className="text-lg font-bold text-white border-l-4 border-primary pl-3 flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  {t('operations.route_product_details')}
+                </h4>
+                <div className="space-y-4 bg-slate-900/40 p-5 rounded-2xl border border-white/5">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-slate-400">{t('operations.select_product')}</label>
+                    <select 
+                      required
+                      className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50"
+                      value={shipmentFormData.inventoryId}
+                      onChange={(e) => setShipmentFormData({...shipmentFormData, inventoryId: e.target.value})}
+                    >
+                      <option value="">{t('operations.choose_product')}</option>
+                      {inventory.map(item => (
+                        <option key={item._id} value={item._id} disabled={item.quantity === 0}>
+                          {item.productName} ({item.quantity} {t('operations.available') || 'available'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label={t('operations.origin_city')} required value={shipmentFormData.originCity} onChange={(v) => setShipmentFormData({...shipmentFormData, originCity: v})} />
+                    <FormField label={t('operations.dest_city')} required value={shipmentFormData.destinationCity} onChange={(v) => setShipmentFormData({...shipmentFormData, destinationCity: v})} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label={t('operations.distance')} type="number" required value={shipmentFormData.distanceKm} onChange={(v) => setShipmentFormData({...shipmentFormData, distanceKm: v})} />
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-slate-400">{t('operations.vehicle_type')}</label>
+                      <select 
+                        className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50 capitalize"
+                        value={shipmentFormData.vehicleType}
+                        onChange={(e) => setShipmentFormData({...shipmentFormData, vehicleType: e.target.value})}
+                      >
+                        {Object.keys(VEHICLE_DATA).map(key => (
+                          <option key={key} value={key}>{VEHICLE_DATA[key].label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <button type="submit" disabled={formLoading} className="w-full bg-primary hover:bg-emerald-400 text-dark py-4 rounded-xl font-bold text-lg mt-4 transition-all shadow-xl disabled:opacity-50">
-                {formLoading ? 'Creating...' : 'Create Shipment'}
-              </button>
+
+              {/* Manual Vehicle Details Section */}
+              <div className="space-y-6">
+                <h4 className="text-lg font-bold text-white border-l-4 border-orange-400 pl-3 flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-orange-400" />
+                  {t('operations.manual_profiling')}
+                </h4>
+                <div className="grid grid-cols-2 gap-4 bg-slate-900/40 p-5 rounded-2xl border border-white/5">
+                  <FormField label={t('operations.vehicle_number')} placeholder="e.g. MH-12-AB-1234" value={shipmentFormData.vehicleNumber} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleNumber: v})} />
+                  <FormField label={t('operations.vehicle_model')} placeholder="e.g. Tata Signa 5530" value={shipmentFormData.vehicleModel} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleModel: v})} />
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-slate-400">{t('operations.fuel_type')}</label>
+                    <select 
+                      className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50"
+                      value={shipmentFormData.fuelType}
+                      onChange={(e) => setShipmentFormData({...shipmentFormData, fuelType: e.target.value})}
+                    >
+                      {FUEL_TYPES.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <FormField label={t('operations.load_capacity')} type="number" value={shipmentFormData.loadCapacity} onChange={(v) => setShipmentFormData({...shipmentFormData, loadCapacity: v})} />
+                  
+                  <FormField label={t('operations.avg_mileage')} type="number" value={shipmentFormData.averageMileage} onChange={(v) => setShipmentFormData({...shipmentFormData, averageMileage: v})} />
+                  <FormField label={t('operations.emission_factor')} type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} />
+                  
+                  <FormField label={t('operations.driver_name')} value={shipmentFormData.driverName} onChange={(v) => setShipmentFormData({...shipmentFormData, driverName: v})} />
+                  <FormField label={t('operations.transport_company')} value={shipmentFormData.transportCompany} onChange={(v) => setShipmentFormData({...shipmentFormData, transportCompany: v})} />
+                </div>
+              </div>
             </div>
 
-            {/* Vehicle Details Panel */}
-            <div className="bg-slate-900/60 rounded-2xl p-6 border border-white/5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className={`p-4 rounded-2xl ${VEHICLE_DATA[shipmentFormData.vehicleType].bg}`}>
-                    {React.createElement(VEHICLE_DATA[shipmentFormData.vehicleType].icon, { className: `w-8 h-8 ${VEHICLE_DATA[shipmentFormData.vehicleType].color}` })}
-                  </div>
-                  <div>
-                    <h4 className="text-2xl font-bold text-white capitalize">{shipmentFormData.vehicleType} Details</h4>
-                    <p className="text-slate-400 text-sm">Automated transport profiling</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <DetailRow label="Model" value={VEHICLE_DATA[shipmentFormData.vehicleType].model} />
-                  <DetailRow label="Fuel Type" value={VEHICLE_DATA[shipmentFormData.vehicleType].fuelType} />
-                  <DetailRow label="Avg Capacity" value={VEHICLE_DATA[shipmentFormData.vehicleType].capacity} />
-                  <DetailRow label="Avg Emission" value={VEHICLE_DATA[shipmentFormData.vehicleType].emission} />
-                  <div className="pt-4 border-t border-white/5">
-                    <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Best For</p>
-                    <p className="text-primary font-medium">{VEHICLE_DATA[shipmentFormData.vehicleType].bestFor}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 p-4 bg-primary/10 rounded-xl border border-primary/20 flex items-start gap-3">
-                <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  Calculations are based on the standard emission factors for {shipmentFormData.vehicleType} transport. Final values may vary based on terrain and load weight.
-                </p>
-              </div>
+            <div className="flex items-center gap-4 bg-primary/10 p-4 rounded-xl border border-primary/20">
+              <Info className="w-5 h-5 text-primary shrink-0" />
+              <p className="text-sm text-slate-300" dangerouslySetInnerHTML={{ __html: t('operations.emission_factor_hint') }}></p>
             </div>
+
+            <button type="submit" disabled={formLoading} className="w-full bg-primary hover:bg-emerald-400 text-dark py-4 rounded-2xl font-bold text-xl transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2">
+              {formLoading ? <LoadingSpinner size="sm" /> : <><Plus className="w-6 h-6" /> {t('operations.create_and_track')}</>}
+            </button>
           </form>
         </Modal>
       )}
@@ -414,21 +443,21 @@ const StatCard = ({ title, value, icon: Icon, color, uppercase }) => {
   );
 };
 
-const InventoryTable = ({ data, getStockBadge }) => (
+const InventoryTable = ({ t, data, getStockBadge }) => (
   <div className="overflow-x-auto">
     <table className="w-full text-left border-collapse">
       <thead className="bg-slate-800/40 text-slate-500 uppercase text-xs font-bold tracking-widest border-y border-white/5">
         <tr>
-          <th className="px-6 py-4">Product Details</th>
-          <th className="px-6 py-4">SKU</th>
-          <th className="px-6 py-4">Stock Level</th>
-          <th className="px-6 py-4">Location</th>
-          <th className="px-6 py-4 text-right">Status</th>
+          <th className="px-6 py-4">{t('operations.product_details')}</th>
+          <th className="px-6 py-4">{t('operations.sku')}</th>
+          <th className="px-6 py-4">{t('operations.stock_level')}</th>
+          <th className="px-6 py-4">{t('operations.location')}</th>
+          <th className="px-6 py-4 text-right">{t('operations.status')}</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-white/5">
         {data.length === 0 ? (
-          <tr><td colSpan="5" className="py-20"><EmptyState title="No items found" description="Adjust your search or add a new product." /></td></tr>
+          <tr><td colSpan="5" className="py-20"><EmptyState title={t('operations.no_items')} description={t('operations.no_items_desc')} /></td></tr>
         ) : data.map(item => (
           <tr key={item._id} className="hover:bg-white/5 transition-colors group">
             <td className="px-6 py-5">
@@ -438,12 +467,12 @@ const InventoryTable = ({ data, getStockBadge }) => (
                 </div>
                 <div>
                   <div className="font-bold text-white">{item.productName}</div>
-                  <div className="text-xs text-slate-500">{item.category || 'Standard'}</div>
+                  <div className="text-xs text-slate-500">{item.category || t('operations.standard')}</div>
                 </div>
               </div>
             </td>
             <td className="px-6 py-5 font-mono text-xs text-slate-400">{item.sku}</td>
-            <td className="px-6 py-5 text-white font-semibold">{item.quantity} units</td>
+            <td className="px-6 py-5 text-white font-semibold">{item.quantity} {t('operations.units') || 'units'}</td>
             <td className="px-6 py-5 text-slate-400 text-sm">{item.warehouseLocation}</td>
             <td className="px-6 py-5 text-right">{getStockBadge(item.quantity)}</td>
           </tr>
@@ -453,45 +482,56 @@ const InventoryTable = ({ data, getStockBadge }) => (
   </div>
 );
 
-const ShipmentTable = ({ data, getStatusBadge }) => (
+const ShipmentTable = ({ t, VEHICLE_DATA, data, getStatusBadge }) => (
   <div className="overflow-x-auto">
     <table className="w-full text-left border-collapse">
       <thead className="bg-slate-800/40 text-slate-500 uppercase text-xs font-bold tracking-widest border-y border-white/5">
         <tr>
-          <th className="px-6 py-4">Route</th>
-          <th className="px-6 py-4">Vehicle</th>
-          <th className="px-6 py-4">Distance</th>
-          <th className="px-6 py-4">Carbon Footprint</th>
-          <th className="px-6 py-4 text-right">Status</th>
+          <th className="px-6 py-4">{t('operations.route_info')}</th>
+          <th className="px-6 py-4">{t('operations.vehicle_details')}</th>
+          <th className="px-6 py-4">{t('operations.energy_fuel')}</th>
+          <th className="px-6 py-4">{t('operations.sustainability')}</th>
+          <th className="px-6 py-4 text-right">{t('operations.status')}</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-white/5">
         {data.length === 0 ? (
-          <tr><td colSpan="5" className="py-20"><EmptyState title="No shipments found" description="Create your first shipment to start tracking." /></td></tr>
+          <tr><td colSpan="5" className="py-20"><EmptyState title={t('operations.no_shipments')} description={t('operations.no_shipments_desc')} /></td></tr>
         ) : data.map(ship => (
           <tr key={ship._id} className="hover:bg-white/5 transition-colors group">
             <td className="px-6 py-5">
+              <div className="flex flex-col">
+                <span className="font-bold text-white flex items-center gap-2">
+                  {ship.origin} <ArrowRight className="w-3 h-3 text-primary" /> {ship.destination}
+                </span>
+                <span className="text-[10px] text-slate-500 flex items-center gap-1 mt-1">
+                  <MapPin className="w-3 h-3" /> {ship.distanceKm} km
+                </span>
+              </div>
+            </td>
+            <td className="px-6 py-5">
               <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${VEHICLE_DATA[ship.vehicleType]?.bg || 'bg-slate-800'}`}>
+                  {React.createElement(VEHICLE_DATA[ship.vehicleType]?.icon || Truck, { className: `w-4 h-4 ${VEHICLE_DATA[ship.vehicleType]?.color || 'text-slate-400'}` })}
+                </div>
                 <div className="flex flex-col">
-                  <span className="font-bold text-white">{ship.origin}</span>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                    <ChevronRight className="w-3 h-3 text-primary" />
-                    {ship.destination}
-                  </div>
+                  <span className="text-white font-semibold capitalize">{t(`vehicles.${ship.vehicleType}`) || ship.vehicleType?.replace('_', ' ')}</span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-tighter">{ship.vehicleNumber || t('operations.no_id') || 'No ID'}</span>
                 </div>
               </div>
             </td>
             <td className="px-6 py-5">
-              <div className="flex items-center gap-2">
-                {React.createElement(VEHICLE_DATA[ship.vehicleType]?.icon || Truck, { className: "w-4 h-4 text-primary" })}
-                <span className="text-white capitalize">{ship.vehicleType}</span>
+              <div className="flex flex-col">
+                <span className="text-slate-300 text-sm font-medium">{t(`operations.fuel_${ship.fuelType?.toLowerCase()}`) || ship.fuelType}</span>
+                <span className="text-[10px] text-slate-500 italic">{ship.vehicleModel || 'Model N/A'}</span>
               </div>
             </td>
-            <td className="px-6 py-5 text-slate-300 font-medium">{ship.distanceKm} km</td>
             <td className="px-6 py-5">
               <div className="flex flex-col">
                 <span className="text-orange-400 font-bold">{Math.round(ship.carbonEmissionKg)} kg CO2</span>
-                <span className="text-[10px] text-emerald-400">Saved {Math.round(ship.savingsKg)} kg</span>
+                <span className="text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5">
+                  <TrendingUp className="w-3 h-3" /> {t('optimization.savings')} {Math.round(ship.savingsKg)} kg
+                </span>
               </div>
             </td>
             <td className="px-6 py-5 text-right">{getStatusBadge(ship.status)}</td>
@@ -502,9 +542,15 @@ const ShipmentTable = ({ data, getStatusBadge }) => (
   </div>
 );
 
+const ArrowRight = ({ className }) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+  </svg>
+);
+
 const Modal = ({ title, onClose, children, wide }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in zoom-in duration-300">
-    <div className={`glass-card rounded-[32px] w-full ${wide ? 'max-w-4xl' : 'max-w-md'} p-8 relative border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden`}>
+    <div className={`glass-card rounded-[32px] w-full ${wide ? 'max-w-4xl' : 'max-w-md'} p-8 relative border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden max-h-[90vh] overflow-y-auto`}>
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-500"></div>
       <button onClick={onClose} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-colors">
         <X className="w-6 h-6" />
@@ -518,22 +564,15 @@ const Modal = ({ title, onClose, children, wide }) => (
   </div>
 );
 
-const FormField = ({ label, type = 'text', required, value, onChange }) => (
+const FormField = ({ label, type = 'text', required, value, onChange, placeholder }) => (
   <div className="space-y-1.5">
     <label className="text-sm font-semibold text-slate-400">{label}</label>
     <input
-      type={type} required={required}
+      type={type} required={required} placeholder={placeholder}
       className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-slate-600"
-      value={value === 0 && type === 'number' ? '0' : value || ''}
-      onChange={(e) => onChange(type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
     />
-  </div>
-);
-
-const DetailRow = ({ label, value }) => (
-  <div className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-    <span className="text-sm text-slate-500">{label}</span>
-    <span className="text-sm text-white font-semibold">{value}</span>
   </div>
 );
 
