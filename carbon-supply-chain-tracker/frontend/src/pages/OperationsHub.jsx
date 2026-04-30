@@ -11,22 +11,7 @@ import {
   LayoutDashboard, Zap, User as UserIcon
 } from 'lucide-react';
 
-const VEHICLE_DATA = {
-  truck: { label: 'Truck', icon: Truck, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-  mini_truck: { label: 'Mini Truck', icon: Truck, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-  van: { label: 'Van', icon: Activity, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  pickup: { label: 'Pickup', icon: Truck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-  bike: { label: 'Bike', icon: Activity, color: 'text-slate-400', bg: 'bg-slate-400/10' },
-  electric_van: { label: 'Electric Van', icon: Zap, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
-  rail: { label: 'Rail', icon: Train, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-  ship: { label: 'Ship', icon: ShipIcon, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-  air_cargo: { label: 'Air Cargo', icon: Activity, color: 'text-sky-400', bg: 'bg-sky-400/10' },
-  container_truck: { label: 'Container Truck', icon: Box, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-  refrigerated_truck: { label: 'Refrigerated Truck', icon: Box, color: 'text-blue-300', bg: 'bg-blue-300/10' },
-  ev_truck: { label: 'EV Truck', icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
-};
-
-const FUEL_TYPES = ['Diesel', 'Petrol', 'CNG', 'Electric', 'Hybrid', 'Marine Fuel', 'Aviation Fuel'];
+import { VEHICLE_TYPES } from '../config/vehicleConfig';
 
 const OperationsHub = () => {
   const { t } = useTranslation();
@@ -37,29 +22,25 @@ const OperationsHub = () => {
   const [shipments, setShipments] = useState([]);
   const [search, setSearch] = useState('');
 
-  const VEHICLE_DATA = {
-    truck: { label: t('vehicles.truck'), icon: Truck, color: 'text-orange-400', bg: 'bg-orange-400/10' },
-    mini_truck: { label: t('vehicles.mini_truck'), icon: Truck, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-    van: { label: t('vehicles.van'), icon: Activity, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    pickup: { label: t('vehicles.pickup'), icon: Truck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    bike: { label: t('vehicles.bike'), icon: Activity, color: 'text-slate-400', bg: 'bg-slate-400/10' },
-    electric_van: { label: t('vehicles.electric_van'), icon: Zap, color: 'text-cyan-400', bg: 'bg-cyan-400/10' },
-    rail: { label: t('vehicles.rail'), icon: Train, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-    ship: { label: t('vehicles.ship'), icon: ShipIcon, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    air_cargo: { label: t('vehicles.air_cargo'), icon: Activity, color: 'text-sky-400', bg: 'bg-sky-400/10' },
-    container_truck: { label: t('vehicles.container_truck'), icon: Box, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    refrigerated_truck: { label: t('vehicles.refrigerated_truck'), icon: Box, color: 'text-blue-300', bg: 'bg-blue-300/10' },
-    ev_truck: { label: t('vehicles.ev_truck'), icon: Zap, color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
-  };
+  // Map VEHICLE_TYPES to the format expected by the UI
+  const VEHICLE_DATA = VEHICLE_TYPES.reduce((acc, v) => {
+    acc[v.id] = { 
+      label: t(`vehicles.${v.id}`) || v.label, 
+      icon: v.icon, 
+      color: v.color, 
+      bg: v.bg 
+    };
+    return acc;
+  }, {});
 
   const FUEL_TYPES = [
-    t('operations.fuel_diesel') || 'Diesel', 
-    t('operations.fuel_petrol') || 'Petrol', 
-    t('operations.fuel_cng') || 'CNG', 
-    t('operations.fuel_electric') || 'Electric', 
-    t('operations.fuel_hybrid') || 'Hybrid', 
-    t('operations.fuel_marine') || 'Marine Fuel', 
-    t('operations.fuel_aviation') || 'Aviation Fuel'
+    { value: 'Diesel', label: t('operations.fuel_diesel', 'Diesel') },
+    { value: 'Petrol', label: t('operations.fuel_petrol', 'Petrol') },
+    { value: 'CNG', label: t('operations.fuel_cng', 'CNG') },
+    { value: 'Electric', label: t('operations.fuel_electric', 'Electric') },
+    { value: 'Hybrid', label: t('operations.fuel_hybrid', 'Hybrid') },
+    { value: 'Marine Fuel', label: t('operations.fuel_marine', 'Marine Fuel') },
+    { value: 'Aviation Fuel', label: t('operations.fuel_aviation', 'Aviation Fuel') }
   ];
   
   // Modals
@@ -207,9 +188,9 @@ const OperationsHub = () => {
         <div>
           <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <LayoutDashboard className="text-primary w-10 h-10" />
-            {t('operations.title')}
+            {t('operations.title') || 'Operations Hub'}
           </h1>
-          <p className="text-slate-400 mt-2 text-lg">{t('operations.subtitle')}</p>
+          <p className="text-slate-400 mt-2 text-lg">{t('operations.subtitle') || 'Manage your inventory, shipments, and supply chain logistics in one place.'}</p>
         </div>
         <div className="flex gap-3">
           <button 
@@ -217,28 +198,28 @@ const OperationsHub = () => {
             className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-3 rounded-xl font-semibold transition-all border border-slate-700 flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
-            {t('operations.add_product')}
+            {t('operations.add_product') || 'Add Product'}
           </button>
           <button 
             onClick={() => setIsShipmentModalOpen(true)}
             className="bg-primary hover:bg-emerald-400 text-dark px-5 py-3 rounded-xl font-semibold transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center gap-2"
           >
             <Truck className="w-5 h-5" />
-            {t('operations.create_shipment')}
+            {t('operations.create_shipment') || 'Create Shipment'}
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title={t('operations.total_products')} value={summary?.totalProducts || 0} icon={Box} color="primary" />
-        <StatCard title={t('operations.total_shipments')} value={summary?.totalShipments || 0} icon={Truck} color="blue" />
-        <StatCard title={t('operations.total_distance')} value={`${Math.round(summary?.totalDistance || 0)} km`} icon={MapPin} color="purple" />
-        <StatCard title={t('operations.total_emissions')} value={`${Math.round(summary?.totalEmission || 0)} kg`} icon={Leaf} color="orange" />
-        <StatCard title={t('operations.total_savings')} value={`${Math.round(summary?.totalSavings || 0)} kg`} icon={TrendingUp} color="emerald" />
-        <StatCard title={t('operations.avg_emission')} value={`${Math.round(summary?.avgEmission || 0)} kg/ship`} icon={Activity} color="cyan" />
-        <StatCard title={t('operations.most_used_vehicle')} value={summary?.mostUsedVehicle ? (t(`vehicles.${summary.mostUsedVehicle}`) || summary.mostUsedVehicle) : 'N/A'} icon={BarChart3} color="indigo" uppercase />
-        <StatCard title={t('operations.last_shipment')} value={summary?.lastShipmentDate ? new Date(summary.lastShipmentDate).toLocaleDateString() : 'N/A'} icon={Calendar} color="slate" />
+        <StatCard title={t('operations.total_products') || 'Total Products'} value={summary?.totalProducts || 0} icon={Box} color="primary" />
+        <StatCard title={t('operations.total_shipments') || 'Total Shipments'} value={summary?.totalShipments || 0} icon={Truck} color="blue" />
+        <StatCard title={t('operations.total_distance') || 'Total Distance'} value={`${Math.round(summary?.totalDistance || 0)} km`} icon={MapPin} color="purple" />
+        <StatCard title={t('operations.total_emissions') || 'Total Emissions'} value={`${Math.round(summary?.totalEmission || 0)} kg`} icon={Leaf} color="orange" />
+        <StatCard title={t('operations.total_savings') || 'Total Savings'} value={`${Math.round(summary?.totalSavings || 0)} kg`} icon={TrendingUp} color="emerald" />
+        <StatCard title={t('operations.avg_emission') || 'Avg Emission'} value={`${Math.round(summary?.avgEmission || 0)} kg/ship`} icon={Activity} color="cyan" />
+        <StatCard title={t('operations.most_used_vehicle') || 'Most Used Vehicle'} value={summary?.mostUsedVehicle ? (t(`vehicles.${summary.mostUsedVehicle}`) || summary.mostUsedVehicle) : 'N/A'} icon={BarChart3} color="indigo" uppercase />
+        <StatCard title={t('operations.last_shipment') || 'Last Shipment'} value={summary?.lastShipmentDate ? new Date(summary.lastShipmentDate).toLocaleDateString() : 'N/A'} icon={Calendar} color="slate" />
       </div>
 
       {/* Main Content Area */}
@@ -382,7 +363,7 @@ const OperationsHub = () => {
                       onChange={(e) => setShipmentFormData({...shipmentFormData, fuelType: e.target.value})}
                     >
                       {FUEL_TYPES.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                        <option key={type.value} value={type.value}>{type.label}</option>
                       ))}
                     </select>
                   </div>

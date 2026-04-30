@@ -26,7 +26,7 @@ const shipmentSchema = new mongoose.Schema({
   vehicleType: {
     type: String,
     enum: [
-      'truck', 'mini_truck', 'van', 'pickup', 'bike', 'electric_van', 
+      'truck', 'mini_truck', 'van', 'pickup', 'bike', 'car', 'electric_van', 
       'rail', 'ship', 'air_cargo', 'container_truck', 'refrigerated_truck', 'ev_truck'
     ],
     required: [true, 'Please add a vehicle type'],

@@ -142,6 +142,14 @@
     "transport_company": "Empresa de transporte",
     "create_and_track": "Crear envío y rastrear emisiones",
     "emission_factor_hint": "Si el factor de emisión se deja vacío, el sistema calculará automáticamente la huella de carbono utilizando el optimizador de sostenibilidad incorporado para el tipo de vehículo seleccionado.",
+    "available": "disponible",
+    "fuel_diesel": "Diesel",
+    "fuel_petrol": "Gasolina",
+    "fuel_cng": "GNC",
+    "fuel_electric": "Eléctrico",
+    "fuel_hybrid": "Híbrido",
+    "fuel_marine": "Combustible marino",
+    "fuel_aviation": "Combustible de aviación",
     "loading": "Cargando centro de operaciones...",
     "saving": "Guardando...",
     "no_items": "No se encontraron artículos",
@@ -166,7 +174,15 @@
     "failed": "Error al optimizar la ruta o cargar el mapa.",
     "mapping": "Mapeando ruta...",
     "visualization": "Visualización de ruta",
-    "enter_cities": "Ingresa tus ciudades de origen y destino para visualizar la ruta logística en el mapa."
+    "enter_cities": "Ingresa tus ciudades de origen y destino para visualizar la ruta logística en el mapa.",
+    "already_best": "Ya estás utilizando la opción más ecológica.",
+    "comparison_title": "Comparación de emisiones por vehículo",
+    "total_emission_label": "Emisión Total",
+    "co2_saved_label": "CO2 Ahorrado",
+    "medium_emission": "Emisión Media",
+    "eco_friendly": "Ecológico",
+    "high_emission": "Alta Emisión",
+    "best_option": "Mejor Opción"
   },
   "analytics": {
     "title": "Análisis de sostenibilidad",
@@ -231,7 +247,9 @@
     "unit_ton": "Toneladas métricas (t)",
     "unit_lb": "Libras (lb)",
     "load_error": "Error al cargar la configuración",
-    "loading": "Cargando configuración..."
+    "loading": "Cargando configuración...",
+    "notif_success": "Configuración de notificaciones guardada",
+    "notif_error": "Error al guardar la configuración de notificaciones"
   },
   "vehicles": {
     "truck": "Camión",
@@ -245,7 +263,8 @@
     "air_cargo": "Carga aérea",
     "container_truck": "Camión de contenedores",
     "refrigerated_truck": "Camión refrigerado",
-    "ev_truck": "Camión eléctrico"
+    "ev_truck": "Camión eléctrico",
+    "car": "Coche"
   },
   "inventory": {
     "title": "Gestión de Inventario",
@@ -288,5 +307,19 @@
     "status_error": "Error al actualizar el estado del envío",
     "create_success": "Envío creado con éxito",
     "create_error": "Error al crear el envío"
+  },
+  "auth": {
+    "login_title": "Bienvenido de nuevo a CarbonTrace",
+    "login_subtitle": "Inicie sesión para gestionar envíos, inventario y análisis de carbono.",
+    "sign_in": "Iniciar sesión",
+    "signing_in": "Iniciando sesión...",
+    "no_account": "¿No tienes una cuenta?",
+    "register_here": "Crear cuenta",
+    "register_title": "Crea tu cuenta",
+    "register_subtitle": "Comience a rastrear la sostenibilidad de su cadena de suministro hoy.",
+    "sign_up": "Registrarse",
+    "signing_up": "Registrándose...",
+    "already_account": "¿Ya tienes una cuenta?",
+    "login_here": "Inicia sesión aquí"
   }
 }

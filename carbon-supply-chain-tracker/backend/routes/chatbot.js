@@ -18,7 +18,7 @@ const chatbotLimiter = rateLimit({
 // @desc    Ask chatbot a question
 // @route   POST /api/chatbot/ask
 // @access  Private
-router.post('/ask', protect, chatbotLimiter, async (req, res) => {
+router.post('/ask', protect, chatbotLimiter, async (req, res, next) => {
   try {
     const { message, language = 'en' } = req.body;
     const userId = req.user._id;
@@ -130,8 +130,7 @@ router.post('/ask', protect, chatbotLimiter, async (req, res) => {
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server Error' });
+    next(error);
   }
 });
 

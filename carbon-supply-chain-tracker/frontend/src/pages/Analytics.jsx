@@ -31,15 +31,7 @@ const Analytics = () => {
 
   if (loading) return <LoadingSpinner message={t('common.loading')} />;
 
-  // Create mock historical data if none exists
-  const emissionHistory = [
-    { month: 'Jan', emission: 400, saved: 240 },
-    { month: 'Feb', emission: 300, saved: 139 },
-    { month: 'Mar', emission: 200, saved: 980 },
-    { month: 'Apr', emission: 278, saved: 390 },
-    { month: 'May', emission: 189, saved: 480 },
-    { month: 'Jun', emission: data?.totalEmissions || 239, saved: data?.totalSaved || 380 },
-  ];
+  const emissionHistory = data?.monthlyTrends || [];
 
   const vehicleComparison = [
     { name: 'Truck', emission: 120, avgDistance: 500 },
@@ -52,41 +44,41 @@ const Analytics = () => {
     <div className="space-y-6 fade-in">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">{t('analytics.title')}</h1>
-          <p className="text-slate-400 mt-1">{t('analytics.subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">{t('analytics.title') || 'Sustainability Analytics'}</h1>
+          <p className="text-slate-400 mt-1">{t('analytics.subtitle') || 'Deep dive into your carbon footprint and operational efficiency.'}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title={t('analytics.efficiency_score')}
+          title={t('analytics.efficiency_score') || 'Efficiency Score'}
           value="A-"
           icon={Leaf}
           trend="up"
           trendValue="Top 15%"
-          subtitle={t('analytics.vs_industry')}
+          subtitle={t('analytics.vs_industry') || 'vs Industry Avg'}
         />
         <StatCard
-          title={t('analytics.ytd_emissions')}
+          title={t('analytics.ytd_emissions') || 'YTD Emissions'}
           value={`${data?.totalEmissions?.toFixed(1) || 0} kg`}
           icon={Activity}
           trend="down"
           trendValue="12%"
-          subtitle={t('analytics.vs_last_year')}
+          subtitle={t('analytics.vs_last_year') || 'vs Last Year'}
         />
         <StatCard
-          title={t('analytics.ytd_saved')}
+          title={t('analytics.ytd_saved') || 'YTD CO2 Saved'}
           value={`${data?.totalSaved?.toFixed(1) || 0} kg`}
           icon={Wind}
           trend="up"
           trendValue="8%"
-          subtitle={t('analytics.vs_last_year')}
+          subtitle={t('analytics.vs_last_year') || 'vs Last Year'}
         />
         <StatCard
-          title={t('analytics.optimal_shipments')}
+          title={t('analytics.optimal_shipments') || 'Optimal Shipments'}
           value="84%"
           icon={TrendingDown}
-          subtitle={t('analytics.recommended_vehicle_used')}
+          subtitle={t('analytics.recommended_vehicle_used') || 'Recommended mode used'}
         />
       </div>
 

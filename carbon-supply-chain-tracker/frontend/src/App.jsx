@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import ChatbotWidget from './components/ChatbotWidget';
 import ProtectedRoute from './components/ProtectedRoute';
+import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -15,23 +16,35 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
 
-const Layout = ({ children }) => (
-  <div className="min-h-screen bg-darker text-white">
-    {/* Background effects */}
-    <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px] pointer-events-none z-0"></div>
-    <div className="fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-emerald-700/10 blur-[100px] pointer-events-none z-0"></div>
-    
-    <Navbar />
-    <Sidebar />
-    
-    <main className="pl-[260px] pt-[72px] min-h-screen z-10 relative">
-      <div className="p-6 md:p-8 max-w-7xl mx-auto">
-        {children}
-      </div>
-    </main>
-    <ChatbotWidget />
-  </div>
-);
+const Layout = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-darker text-white">
+      {/* Background effects */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[120px] pointer-events-none z-0"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-emerald-700/10 blur-[100px] pointer-events-none z-0"></div>
+      
+      <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+      
+      <main className="pl-0 lg:pl-[260px] pt-[72px] min-h-screen z-10 relative transition-all duration-300">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+          {children}
+        </div>
+      </main>
+      <ChatbotWidget />
+    </div>
+  );
+};
 
 function App() {
   const { i18n } = useTranslation();
@@ -81,11 +94,14 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
+        {/* Protected Dashboard Routes */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Layout>
@@ -139,6 +155,7 @@ function App() {
           }
         />
 
+        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

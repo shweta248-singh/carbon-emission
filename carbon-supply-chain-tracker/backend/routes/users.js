@@ -2,11 +2,14 @@ const express = require('express');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const router = express.Router();
+const { validate } = require('../middleware/validation');
+const { body } = require('express-validator');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Get current user profile
 // @route   GET /api/users/me
 // @access  Private
-router.get('/me', protect, async (req, res) => {
+router.get('/me', protect, async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     res.json({
@@ -14,14 +17,17 @@ router.get('/me', protect, async (req, res) => {
       data: user
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 
 // @desc    Update user profile
 // @route   PUT /api/users/me
 // @access  Private
-router.put('/me', protect, async (req, res) => {
+router.put('/me', protect, [
+  body('email').optional().isEmail().withMessage('Please provide a valid email'),
+  validate
+], async (req, res, next) => {
   try {
     const { firstName, lastName, company, email } = req.body;
     
@@ -51,14 +57,18 @@ router.put('/me', protect, async (req, res) => {
       data: user
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 
 // @desc    Update password
 // @route   PUT /api/users/password
 // @access  Private
-router.put('/password', protect, async (req, res) => {
+router.put('/password', protect, [
+  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('newPassword').isLength({ min: 8 }).withMessage('New password must be at least 8 characters long'),
+  validate
+], async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).select('+password');
     const { currentPassword, newPassword } = req.body;
@@ -70,19 +80,34 @@ router.put('/password', protect, async (req, res) => {
     user.password = newPassword;
     await user.save();
 
+    // Send notification
+    let emailError = null;
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Password Changed - CarbonTrace',
+        message: `Hello ${user.name},\n\nYour password for CarbonTrace has been successfully changed. If you did not perform this action, please contact support immediately.`,
+        html: `<h1>Security Alert</h1><p>Hello ${user.name},</p><p>Your password for CarbonTrace has been successfully changed.</p><p>If you did not perform this action, please contact support immediately.</p>`
+      });
+    } catch (err) {
+      console.error('Email could not be sent');
+      emailError = err.message;
+    }
+
     res.json({
       success: true,
-      message: 'Password updated successfully'
+      message: 'Password updated successfully',
+      ...(process.env.NODE_ENV === 'development' && emailError ? { emailError } : {})
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 
 // @desc    Update preferences
 // @route   PUT /api/users/preferences
 // @access  Private
-router.put('/preferences', protect, async (req, res) => {
+router.put('/preferences', protect, async (req, res, next) => {
   try {
     const { theme, defaultVehicle, carbonUnit, language } = req.body;
 
@@ -102,14 +127,14 @@ router.put('/preferences', protect, async (req, res) => {
       data: user.preferences
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 
 // @desc    Update notification settings
 // @route   PUT /api/users/notifications
 // @access  Private
-router.put('/notifications', protect, async (req, res) => {
+router.put('/notifications', protect, async (req, res, next) => {
   try {
     const { emailAlerts, lowStockAlerts, shipmentUpdates, carbonReportAlerts } = req.body;
 
@@ -129,7 +154,7 @@ router.put('/notifications', protect, async (req, res) => {
       data: user.notifications
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 

@@ -24,6 +24,11 @@ module.exports = {
       en: "Carbon emissions in logistics are calculated based on distance traveled, vehicle type, fuel efficiency, and weight of the cargo. Formula: Distance (km) * Emission Factor (kg CO2/km).",
       hi: "लॉजिस्टिक्स में कार्बन उत्सर्जन की गणना तय की गई दूरी, वाहन के प्रकार, ईंधन दक्षता और कार्गो के वजन के आधार पर की जाती है। फॉर्मूला: दूरी (किमी) * उत्सर्जन कारक (किग्रा CO2/किमी)।",
       es: "Las emisiones de carbono en logística se calculan en función de la distancia recorrida, el tipo de vehículo, la eficiencia del combustible y el peso de la carga. Fórmula: Distancia (km) * Factor de emisión (kg CO2/km)."
+    },
+    vehicles: {
+      en: "CarbonTrace supports 12 vehicle types: Car, Bike, Truck, Mini Truck, Van, Electric Van, Pickup, Rail, Ship, Air Cargo, EV Truck, and Container Truck. Each has a specific emission factor, with Ship and Rail being among the most eco-friendly.",
+      hi: "CarbonTrace 12 वाहन प्रकारों का समर्थन करता है: कार, बाइक, ट्रक, मिनी ट्रक, वैन, इलेक्ट्रिक वैन, पिकअप, रेल, जहाज, एयर कार्गो, ईवी ट्रक और कंटेनर ट्रक। प्रत्येक का एक विशिष्ट उत्सर्जन कारक है, जिसमें जहाज और रेल सबसे अधिक पर्यावरण के अनुकूल हैं।",
+      es: "CarbonTrace admite 12 tipos de vehículos: Coche, Bicicleta, Camión, Minicamión, Furgoneta, Furgoneta Eléctrica, Camioneta, Ferrocarril, Barco, Carga Aérea, Camión Eléctrico y Camión de Contenedores. Cada uno tiene un factor de emisión específico, siendo el barco y el ferrocarril los más ecológicos."
     }
   },
   features: {

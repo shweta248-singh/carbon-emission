@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/axios';
-import { Map as MapIcon, Navigation2, Zap, ArrowRight, ShieldCheck, Leaf, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { 
+  Map as MapIcon, Navigation2, Zap, ArrowRight, ShieldCheck, 
+  Leaf, MapPin, Loader2, AlertCircle, ChevronDown,
+  Truck, TrendingUp, TrendingDown, Clock, Move 
+} from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { VEHICLE_TYPES, calculateEmissions, getVehicleById } from '../config/vehicleConfig';
 
 // Leaflet imports
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
@@ -23,297 +28,407 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // Map Recenter Component
-const RecenterMap = ({ origin, dest }) => {
+const RecenterMap = ({ origin, dest, routes }) => {
   const map = useMap();
   useEffect(() => {
     if (origin && dest) {
-      const bounds = L.latLngBounds([origin, dest]);
+      let bounds = L.latLngBounds([origin, dest]);
+      
+      // Expand bounds to include all route points if they exist
+      if (routes && routes.length > 0) {
+        routes.forEach(route => {
+          if (route.geometry) {
+            route.geometry.forEach(coord => {
+              bounds.extend([coord[1], coord[0]]); // [lat, lon]
+            });
+          }
+        });
+      }
+      
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
     } else if (origin) {
       map.setView(origin, 10);
     } else if (dest) {
       map.setView(dest, 10);
     }
-  }, [origin, dest, map]);
+  }, [origin, dest, routes, map]);
   return null;
 };
 
 const RouteOptimization = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     originCity: '',
     destinationCity: '',
-    vehicleType: 'truck',
-    distanceKm: ''
+    vehicleType: ''
   });
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [routes, setRoutes] = useState([]);
   const [originCoords, setOriginCoords] = useState(null);
   const [destCoords, setDestCoords] = useState(null);
   const [mapError, setMapError] = useState('');
   const [mapLoading, setMapLoading] = useState(false);
+  const [insights, setInsights] = useState(null);
+  const [userVehicles, setUserVehicles] = useState([]);
+  const [initLoading, setInitLoading] = useState(true);
 
-
-  const geocodeCity = async (city) => {
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
-      const data = await response.json();
-      if (data && data.length > 0) {
-        return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  useEffect(() => {
+    const fetchUserShipments = async () => {
+      try {
+        const response = await api.get('/shipments');
+        const shipments = response.data.data || [];
+        
+        // Extract unique vehicle types
+        const uniqueTypes = [...new Set(shipments.map(s => s.vehicleType))];
+        
+        // Map to config and filter
+        const filtered = VEHICLE_TYPES.filter(v => uniqueTypes.includes(v.id));
+        setUserVehicles(filtered);
+        
+        if (filtered.length > 0) {
+          setFormData(prev => ({ ...prev, vehicleType: filtered[0].id }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch shipments:', err);
+      } finally {
+        setInitLoading(false);
       }
-      return null;
-    } catch (err) {
-      console.error('Geocoding error:', err);
-      return null;
-    }
-  };
+    };
+
+    fetchUserShipments();
+  }, []);
 
   const handleOptimize = async (e) => {
     e.preventDefault();
+    if (!formData.vehicleType) return;
+
     setLoading(true);
     setMapLoading(true);
     setMapError('');
+    setRoutes([]);
+    setInsights(null);
     
     try {
-      // 1. Backend Optimization Result
-      const response = await api.post('/shipments/optimize', formData);
-      setResult(response.data.data);
+      // Call Backend for Route Calculation (proxied ORS)
+      const response = await api.post('/operations/calculate-routes', {
+        originCity: formData.originCity,
+        destinationCity: formData.destinationCity
+      });
 
-      // 2. Geocoding for Map
-      const [origin, dest] = await Promise.all([
-        geocodeCity(formData.originCity),
-        geocodeCity(formData.destinationCity)
-      ]);
+      const { origin, destination, routes: fetchedRoutes } = response.data.data;
+      
+      setOriginCoords(origin.coords);
+      setDestCoords(destination.coords);
 
-      if (!origin || !dest) {
-        setMapError(t('optimization.location_not_found'));
-      } else {
-        setOriginCoords(origin);
-        setDestCoords(dest);
-      }
+      // Process routes with emissions
+      const processedRoutes = fetchedRoutes.map(route => {
+        const emissions = calculateEmissions(route.distanceKm, formData.vehicleType);
+        return {
+          ...route,
+          emissions,
+          vehicle: getVehicleById(formData.vehicleType)
+        };
+      });
+
+      // Sort and identify insights
+      const sortedByEmissions = [...processedRoutes].sort((a, b) => a.emissions - b.emissions);
+      const sortedByTime = [...processedRoutes].sort((a, b) => a.durationMin - b.durationMin);
+      const sortedByDistance = [...processedRoutes].sort((a, b) => b.emissions - a.emissions); // Highest for contrast
+
+      setRoutes(processedRoutes);
+      setInsights({
+        eco: sortedByEmissions[0],
+        fastest: sortedByTime[0],
+        highest: sortedByDistance[0]
+      });
 
     } catch (err) {
       console.error(err);
-      setMapError(t('optimization.failed'));
+      setMapError(err.response?.data?.message || t('optimization.failed') || 'Failed to optimize routes');
     } finally {
       setLoading(false);
       setMapLoading(false);
     }
   };
 
-  return (
-    <div className="space-y-6 fade-in pb-10">
-      <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">{t('optimization.title')}</h1>
-        <p className="text-slate-400 mt-1">{t('optimization.subtitle')}</p>
-      </div>
+  const getRouteColor = (routeId) => {
+    if (!insights) return '#64748b'; // Slate 500
+    if (routeId === insights.eco.id) return '#10b981'; // Emerald 500
+    if (routeId === insights.highest.id) return '#ef4444'; // Red 500
+    return '#3b82f6'; // Blue 500
+  };
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Side: Form */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="glass-card rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <Navigation2 className="w-5 h-5 text-primary" /> {t('optimization.setup_route')}
+  if (initLoading) return <LoadingSpinner message="Loading optimization tools..." />;
+
+  return (
+    <div className="min-h-screen pb-16 fade-in">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        
+        {/* Header Section */}
+        <div className="pt-2">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <Navigation2 className="text-primary w-8 h-8" />
+            {t('optimization.title') || 'Route Optimization'}
+          </h1>
+          <p className="text-slate-400 mt-1 text-sm">
+            {t('optimization.subtitle') || 'Find the most eco-friendly and efficient routes for your shipments.'}
+          </p>
+        </div>
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
+          
+          {/* Setup Form */}
+          <div className="glass-card rounded-[24px] p-6 border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-500"></div>
+            <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-3">
+              <MapIcon className="w-4 h-4 text-primary" />
+              {t('optimization.setup_route') || 'Setup Route'}
             </h3>
             
-            <form onSubmit={handleOptimize} className="space-y-5">
+            <form onSubmit={handleOptimize} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300 ml-1">{t('shipments.origin_city')}</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                  placeholder="e.g. New York"
-                  value={formData.originCity}
-                  onChange={(e) => setFormData({ ...formData, originCity: e.target.value })}
-                />
+                <label className="text-xs font-semibold text-slate-400 ml-1">{t('shipments.origin_city') || 'Origin City'}</label>
+                <div className="relative">
+                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text" required
+                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-600"
+                    placeholder="e.g. London"
+                    value={formData.originCity}
+                    onChange={(e) => setFormData({ ...formData, originCity: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300 ml-1">{t('shipments.dest_city')}</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                  placeholder="e.g. Los Angeles"
-                  value={formData.destinationCity}
-                  onChange={(e) => setFormData({ ...formData, destinationCity: e.target.value })}
-                />
+                <label className="text-xs font-semibold text-slate-400 ml-1">{t('shipments.dest_city') || 'Destination City'}</label>
+                <div className="relative">
+                  <Navigation2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <input
+                    type="text" required
+                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-600"
+                    placeholder="e.g. Paris"
+                    value={formData.destinationCity}
+                    onChange={(e) => setFormData({ ...formData, destinationCity: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300 ml-1">{t('optimization.current_vehicle')}</label>
-                <select
-                  className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all appearance-none"
-                  value={formData.vehicleType}
-                  onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
-                >
-                  <option value="truck">{t('settings.vehicle_truck')}</option>
-                  <option value="van">{t('settings.vehicle_van')}</option>
-                  <option value="rail">{t('settings.vehicle_rail')}</option>
-                  <option value="ship">{t('settings.vehicle_ship')}</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300 ml-1">{t('shipments.distance')}</label>
-                <input
-                  type="number"
-                  required
-                  className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2.5 px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-                  placeholder="e.g. 4500"
-                  value={formData.distanceKm}
-                  onChange={(e) => setFormData({ ...formData, distanceKm: e.target.value })}
-                />
+                <label className="text-xs font-semibold text-slate-400 ml-1">{t('optimization.current_vehicle') || 'Vehicle Type'}</label>
+                <div className="relative">
+                  <select
+                    disabled={userVehicles.length === 0}
+                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    value={formData.vehicleType}
+                    onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
+                  >
+                    {userVehicles.length > 0 ? (
+                      userVehicles.map(v => (
+                        <option key={v.id} value={v.id} className="bg-slate-900">
+                          {t(`vehicles.${v.id}`) === `vehicles.${v.id}` ? v.label : t(`vehicles.${v.id}`)}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="">No vehicles used yet</option>
+                    )}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                </div>
+                {userVehicles.length === 0 && (
+                  <p className="text-[10px] text-amber-400 mt-1 ml-1 font-medium italic">
+                    Create a shipment first to use route optimization.
+                  </p>
+                )}
               </div>
 
               <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-primary hover:bg-emerald-400 text-dark font-semibold py-3 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2 mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
+                type="submit" disabled={loading || userVehicles.length === 0}
+                className="w-full bg-primary hover:bg-emerald-400 text-dark font-bold py-3 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:grayscale text-sm"
               >
-                {loading ? t('optimization.optimizing') : (
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   <>
-                    <Zap className="w-4 h-4" /> {t('optimization.optimize_button')}
+                    <Zap className="w-4 h-4 fill-current" /> {t('optimization.optimize_button') || 'Analyze Routes'}
                   </>
                 )}
               </button>
             </form>
           </div>
-        </div>
 
-        {/* Right Side: Map & Results */}
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          <div className="glass-card rounded-2xl p-0 flex-1 min-h-[450px] relative overflow-hidden border border-slate-700/50 shadow-inner">
-            {/* Real Map Integration */}
-            <MapContainer 
-              center={[20, 0]} 
-              zoom={2} 
-              style={{ height: '100%', width: '100%', background: '#0f172a' }}
-              zoomControl={false}
-              className="z-0"
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              />
-              
-              {originCoords && (
-                <Marker position={originCoords}>
-                  <Popup>
-                    <div className="text-slate-900 font-medium">
-                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{t('dashboard.origin')}</p>
-                      {formData.originCity}
-                    </div>
-                  </Popup>
-                </Marker>
-              )}
-
-              {destCoords && (
-                <Marker position={destCoords}>
-                  <Popup>
-                    <div className="text-slate-900 font-medium">
-                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{t('dashboard.destination')}</p>
-                      {formData.destinationCity}
-                    </div>
-                  </Popup>
-                </Marker>
-              )}
-
-              {originCoords && destCoords && (
-                <Polyline 
-                  positions={[originCoords, destCoords]} 
-                  color="#10b981" 
-                  weight={3}
-                  opacity={0.8}
-                  dashArray="10, 10"
+          {/* Map View */}
+          <div className="flex flex-col gap-4">
+            <div className="glass-card rounded-[24px] overflow-hidden border border-white/5 h-[400px] relative shadow-xl">
+              <MapContainer 
+                center={[20, 0]} zoom={2} 
+                style={{ height: '100%', width: '100%', background: '#020617' }}
+                zoomControl={false}
+              >
+                <TileLayer
+                  attribution='&copy; OpenStreetMap'
+                  url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 />
-              )}
-
-              <RecenterMap origin={originCoords} dest={destCoords} />
-            </MapContainer>
-
-            {/* Map Overlay for Loading or Errors */}
-            {(mapLoading || mapError || (!originCoords && !destCoords)) && (
-              <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-slate-950/40 backdrop-blur-[2px] pointer-events-none">
-                <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-700/50 shadow-2xl max-w-xs text-center pointer-events-auto transform transition-all animate-in fade-in zoom-in duration-300">
-                  {mapLoading ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="relative">
-                        <Loader2 className="w-10 h-10 text-primary animate-spin" />
-                        <MapPin className="w-4 h-4 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                {originCoords && <Marker position={originCoords}><Popup>{formData.originCity}</Popup></Marker>}
+                {destCoords && <Marker position={destCoords}><Popup>{formData.destinationCity}</Popup></Marker>}
+                
+                {routes.map((route) => (
+                  <Polyline 
+                    key={route.id}
+                    positions={route.geometry.map(coord => [coord[1], coord[0]])}
+                    color={getRouteColor(route.id)}
+                    weight={route.id === insights?.eco.id ? 5 : 3}
+                    opacity={route.id === insights?.eco.id ? 1 : 0.6}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <p className="font-bold">Route {route.id + 1}</p>
+                        <p className="text-xs">{route.distanceKm.toFixed(1)} km | {Math.round(route.durationMin)} min</p>
+                        <p className="text-xs font-bold text-emerald-400">{route.emissions.toFixed(1)} kg CO2</p>
                       </div>
-                      <p className="text-white font-medium">{t('optimization.mapping')}</p>
-                    </div>
-                  ) : mapError ? (
-                    <div className="flex flex-col items-center gap-3">
-                      <AlertCircle className="w-10 h-10 text-red-400" />
-                      <p className="text-white font-medium">{mapError}</p>
-                      <button 
-                        onClick={() => setMapError('')}
-                        className="text-xs text-slate-400 hover:text-white underline underline-offset-4"
-                      >
-                        {t('common.dismiss')}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="p-3 bg-slate-800/50 rounded-full mb-2">
-                        <MapIcon className="w-8 h-8 text-slate-400" />
+                    </Popup>
+                  </Polyline>
+                ))}
+                
+                <RecenterMap origin={originCoords} dest={destCoords} routes={routes} />
+              </MapContainer>
+
+              {/* Map Loading/Error Overlay */}
+              {(mapLoading || mapError) && (
+                <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-slate-950/40 backdrop-blur-[2px]">
+                  <div className="text-center p-4">
+                    {mapLoading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                        <p className="text-white text-xs font-bold">Calculating optimal routes...</p>
                       </div>
-                      <h4 className="text-white font-medium">{t('optimization.visualization')}</h4>
-                      <p className="text-slate-400 text-sm leading-relaxed">{t('optimization.enter_cities')}</p>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <AlertCircle className="w-8 h-8 text-red-400" />
+                        <p className="text-white text-xs font-bold">{mapError}</p>
+                        <button onClick={() => setMapError('')} className="text-primary text-[10px] font-bold underline">Dismiss</button>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              )}
+            </div>
+
+            {/* Smart Insights */}
+            {insights && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <InsightCard 
+                  title="Eco-Friendly" 
+                  route={insights.eco} 
+                  icon={Leaf} 
+                  color="text-emerald-400" 
+                  bg="bg-emerald-400/10" 
+                  border="border-emerald-400/20"
+                />
+                <InsightCard 
+                  title="Fastest Route" 
+                  route={insights.fastest} 
+                  icon={Zap} 
+                  color="text-amber-400" 
+                  bg="bg-amber-400/10" 
+                  border="border-amber-400/20"
+                />
+                <InsightCard 
+                  title="Highest Emission" 
+                  route={insights.highest} 
+                  icon={AlertCircle} 
+                  color="text-red-400" 
+                  bg="bg-red-400/10" 
+                  border="border-red-400/20"
+                />
               </div>
             )}
           </div>
-
-          {loading ? (
-             <div className="glass-card rounded-2xl p-8 flex justify-center">
-               <LoadingSpinner message={t('optimization.calculating') || 'Calculating optimal transport mode...'} />
-             </div>
-          ) : result && (
-            <div className="glass-card rounded-2xl p-8 border border-primary/20 bg-gradient-to-br from-slate-900/80 to-primary/5 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Leaf className="w-32 h-32 text-primary" />
-              </div>
-              
-              <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="p-2 bg-primary/20 rounded-lg text-primary">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white">{t('optimization.results')}</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-                  <p className="text-slate-400 text-sm mb-1">{t('optimization.current_emission')}</p>
-                  <p className="text-2xl font-bold text-red-400">{result.currentEmissionKg?.toFixed(1) || 0} <span className="text-sm font-normal text-slate-500">kg CO2</span></p>
-                </div>
-                
-                <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 flex flex-col justify-center relative">
-                  <div className="absolute -left-4 top-1/2 -translate-y-1/2 w-8 flex justify-center hidden md:flex text-slate-500">
-                    <ArrowRight className="w-5 h-5" />
-                  </div>
-                  <p className="text-emerald-400 text-sm mb-1 font-medium">{t('optimization.recommended')}</p>
-                  <p className="text-2xl font-bold text-white capitalize flex items-center gap-2">
-                    {result.recommendedVehicle} <Zap className="w-4 h-4 text-amber-400" />
-                  </p>
-                </div>
-
-                <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
-                  <p className="text-slate-400 text-sm mb-1">{t('optimization.savings')}</p>
-                  <p className="text-2xl font-bold text-emerald-400">+{result.savingsKg?.toFixed(1) || 0} <span className="text-sm font-normal text-slate-500">kg CO2</span></p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Route Cards */}
+        {routes.length > 0 && (
+          <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
+            <div className="flex items-center gap-3">
+              <div className="w-1.5 h-6 bg-primary rounded-full"></div>
+              <h3 className="text-xl font-bold text-white">Alternative Routes Comparison</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {routes.map((route, index) => (
+                <div 
+                  key={route.id}
+                  className={`glass-card p-6 rounded-[28px] border transition-all duration-300 relative overflow-hidden ${
+                    route.id === insights?.eco.id 
+                      ? 'border-emerald-500 bg-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]' 
+                      : 'border-white/5'
+                  }`}
+                >
+                  {route.id === insights?.eco.id && (
+                    <div className="absolute top-4 right-4 bg-emerald-500 text-dark text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                      Best Option
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className={`p-3 rounded-2xl ${route.id === insights?.eco.id ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                      <Truck size={24} />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white">Route {index + 1}</h4>
+                      <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">{Math.round(route.durationMin)} minutes</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <Move className="w-4 h-4 text-slate-500" />
+                        <span className="text-xs text-slate-400">Distance</span>
+                      </div>
+                      <span className="text-sm font-bold text-white">{route.distanceKm.toFixed(1)} km</span>
+                    </div>
+
+                    <div className="flex justify-between items-center p-3 bg-slate-950/40 rounded-xl border border-white/5">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-slate-500" />
+                        <span className="text-xs text-slate-400">Duration</span>
+                      </div>
+                      <span className="text-sm font-bold text-white">{Math.round(route.durationMin)} min</span>
+                    </div>
+
+                    <div className={`flex justify-between items-center p-4 rounded-xl border ${
+                      route.id === insights?.eco.id ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-slate-950/40 border-white/5'
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <Leaf className={`w-5 h-5 ${route.id === insights?.eco.id ? 'text-emerald-400' : 'text-slate-500'}`} />
+                        <span className="text-xs font-bold text-slate-400">Carbon Emission</span>
+                      </div>
+                      <span className={`text-lg font-black ${route.id === insights?.eco.id ? 'text-emerald-400' : 'text-white'}`}>
+                        {route.emissions.toFixed(1)} <span className="text-[10px] uppercase">kg</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+const InsightCard = ({ title, route, icon: Icon, color, bg, border }) => (
+  <div className={`glass-card p-4 rounded-2xl border ${border} ${bg} flex items-center gap-4`}>
+    <div className={`p-3 rounded-xl ${bg} ${color} border ${border}`}>
+      <Icon size={20} />
+    </div>
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">{title}</p>
+      <p className={`text-base font-bold ${color}`}>{route.emissions.toFixed(1)} kg CO2</p>
+      <p className="text-[10px] text-slate-400 font-medium">{route.distanceKm.toFixed(1)} km | {Math.round(route.durationMin)} min</p>
+    </div>
+  </div>
+);
 
 export default RouteOptimization;

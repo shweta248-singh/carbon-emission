@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api/axios';
-import { Leaf, LogOut, Bell, Search, User, Sun, Moon, Globe, ChevronDown } from 'lucide-react';
+import { Leaf, LogOut, Bell, Search, User, Sun, Moon, Globe, ChevronDown, Menu } from 'lucide-react';
 
-const Navbar = () => {
+const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [userName, setUserName] = useState('');
@@ -13,6 +13,7 @@ const Navbar = () => {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [userPrefs, setUserPrefs] = useState({});
   const [message, setMessage] = useState(null);
+  
   const showMessage = (text, type = 'success') => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 3000);
@@ -84,17 +85,27 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="h-[72px] fixed top-0 left-0 right-0 glass z-50 flex items-center justify-between px-8 border-b border-white/5 transition-colors duration-300">
-      <Link to="/" className="flex items-center gap-3 group">
-        <div className="bg-primary/20 p-2 rounded-xl border border-primary/30 group-hover:bg-primary/30 transition-colors">
-          <Leaf className="text-primary w-6 h-6 group-hover:rotate-12 transition-transform" />
-        </div>
-        <span className="text-2xl font-bold bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent tracking-tight">
-          CarbonTrace
-        </span>
-      </Link>
+    <nav className="h-[72px] fixed top-0 left-0 right-0 glass z-50 flex items-center justify-between px-4 md:px-8 border-b border-white/5 transition-colors duration-300">
+      <div className="flex items-center gap-2 md:gap-4">
+        {/* Mobile Menu Button */}
+        <button 
+          onClick={onToggleSidebar}
+          className="p-2 text-slate-400 hover:text-white lg:hidden"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+
+        <Link to="/" className="flex items-center gap-2 md:gap-3 group">
+          <div className="bg-primary/20 p-1.5 md:p-2 rounded-xl border border-primary/30 group-hover:bg-primary/30 transition-colors">
+            <Leaf className="text-primary w-5 h-5 md:w-6 md:h-6 group-hover:rotate-12 transition-transform" />
+          </div>
+          <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent tracking-tight">
+            CarbonTrace
+          </span>
+        </Link>
+      </div>
       
-      <div className="flex-1 max-w-xl px-8 hidden md:block">
+      <div className="flex-1 max-w-xl px-8 hidden lg:block">
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary transition-colors" />
           <input 
@@ -105,18 +116,18 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-1 md:gap-4">
         {/* Theme Toggle */}
         <button 
           onClick={toggleTheme}
-          className="p-2.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
           title={theme === 'dark' ? t('navbar.switch_light') : t('navbar.switch_dark')}
         >
           {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
         </button>
 
         {/* Language Dropdown */}
-        <div className="relative">
+        <div className="relative hidden xs:block">
           <button 
             onClick={() => setIsLangOpen(!isLangOpen)}
             className="flex items-center gap-2 p-2 px-3 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-xl transition-all border border-transparent hover:border-white/5"
@@ -144,21 +155,21 @@ const Navbar = () => {
           )}
         </div>
 
-        <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-full transition-all relative">
+        <button className="p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-full transition-all relative hidden sm:block">
           <Bell className="w-5 h-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full border border-darker"></span>
         </button>
         
-        <div className="h-8 w-[1px] bg-slate-700/50 mx-1 md:mx-2"></div>
+        <div className="h-8 w-[1px] bg-slate-700/50 mx-1 md:mx-2 hidden sm:block"></div>
         
         <button 
           onClick={() => navigate('/settings')}
-          className="flex items-center gap-3 hover:bg-slate-800/50 p-1.5 pr-4 rounded-full transition-all border border-transparent hover:border-slate-700/50"
+          className="flex items-center gap-2 md:gap-3 hover:bg-slate-800/50 p-1 md:p-1.5 md:pr-4 rounded-full transition-all border border-transparent hover:border-slate-700/50"
         >
           <div className="w-8 h-8 bg-gradient-to-tr from-primary to-emerald-700 rounded-full flex items-center justify-center border border-emerald-400/30">
             <User className="w-4 h-4 text-white" />
           </div>
-          <div className="flex flex-col items-start hidden sm:flex">
+          <div className="flex flex-col items-start hidden lg:flex">
             <span className="text-sm font-medium text-white leading-none">{userName}</span>
             <span className="text-xs text-slate-500 mt-1 leading-none">{t('navbar.role') || 'Supply Chain'}</span>
           </div>

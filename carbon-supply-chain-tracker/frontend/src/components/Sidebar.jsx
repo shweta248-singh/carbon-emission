@@ -1,12 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Box, Truck, Zap, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, Box, Truck, Zap, BarChart3, Settings, X } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
   const links = [
-    { name: t('sidebar.dashboard'), path: '/', icon: LayoutDashboard },
+    { name: t('sidebar.dashboard'), path: '/dashboard', icon: LayoutDashboard },
     { name: t('sidebar.operations'), path: '/operations', icon: Box },
     { name: t('sidebar.optimization'), path: '/optimization', icon: Zap },
     { name: t('sidebar.analytics'), path: '/analytics', icon: BarChart3 },
@@ -14,13 +14,22 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-[260px] glass h-[calc(100vh-72px)] fixed top-[72px] left-0 z-40 p-5 border-r border-white/5 flex flex-col justify-between">
+    <aside className={`w-[260px] glass h-[calc(100vh-72px)] fixed top-[72px] z-40 p-5 border-r border-white/5 flex flex-col justify-between transition-all duration-300 lg:left-0 ${isOpen ? 'left-0' : '-left-[260px]'}`}>
       <div className="flex flex-col gap-2">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-2">{t('sidebar.menu')}</div>
+        <div className="flex items-center justify-between lg:hidden mb-4">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-2">{t('sidebar.menu')}</div>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="hidden lg:block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-2">{t('sidebar.menu')}</div>
+        
         {links.map((link) => (
           <NavLink
             key={link.path}
             to={link.path}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group overflow-hidden ${
                 isActive

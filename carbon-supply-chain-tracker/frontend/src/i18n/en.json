@@ -142,6 +142,14 @@
     "transport_company": "Transport Company",
     "create_and_track": "Create Shipment & Track Emissions",
     "emission_factor_hint": "If Emission Factor is left empty, the system will automatically calculate the carbon footprint using the built-in sustainability optimizer for the selected vehicle type.",
+    "available": "available",
+    "fuel_diesel": "Diesel",
+    "fuel_petrol": "Petrol",
+    "fuel_cng": "CNG",
+    "fuel_electric": "Electric",
+    "fuel_hybrid": "Hybrid",
+    "fuel_marine": "Marine Fuel",
+    "fuel_aviation": "Aviation Fuel",
     "loading": "Loading Operations Hub...",
     "saving": "Saving...",
     "no_items": "No items found",
@@ -166,7 +174,15 @@
     "failed": "Failed to optimize route or load map.",
     "mapping": "Mapping route...",
     "visualization": "Route Visualization",
-    "enter_cities": "Enter your origin and destination cities to visualize the logistics path on the map."
+    "enter_cities": "Enter your origin and destination cities to visualize the logistics path on the map.",
+    "already_best": "You are already using the most eco-friendly option.",
+    "comparison_title": "Vehicle-wise Emission Comparison",
+    "total_emission_label": "Total Emission",
+    "co2_saved_label": "CO2 Saved",
+    "medium_emission": "Medium Emission",
+    "eco_friendly": "Eco Friendly",
+    "high_emission": "High Emission",
+    "best_option": "Best Option"
   },
   "analytics": {
     "title": "Sustainability Analytics",
@@ -231,7 +247,9 @@
     "unit_ton": "Metric Tons (t)",
     "unit_lb": "Pounds (lb)",
     "load_error": "Failed to load settings",
-    "loading": "Loading settings..."
+    "loading": "Loading settings...",
+    "notif_success": "Notification settings saved",
+    "notif_error": "Failed to save notification settings"
   },
   "vehicles": {
     "truck": "Truck",
@@ -245,7 +263,8 @@
     "air_cargo": "Air Cargo",
     "container_truck": "Container Truck",
     "refrigerated_truck": "Refrigerated Truck",
-    "ev_truck": "EV Truck"
+    "ev_truck": "EV Truck",
+    "car": "Car"
   },
   "inventory": {
     "title": "Inventory Management",
@@ -288,5 +307,19 @@
     "status_error": "Failed to update shipment status",
     "create_success": "Shipment created successfully",
     "create_error": "Failed to create shipment"
+  },
+  "auth": {
+    "login_title": "Welcome back to CarbonTrace",
+    "login_subtitle": "Sign in to manage shipments, inventory, and carbon insights.",
+    "sign_in": "Sign In",
+    "signing_in": "Signing In...",
+    "no_account": "Don’t have an account?",
+    "register_here": "Create account",
+    "register_title": "Create your account",
+    "register_subtitle": "Start tracking your supply chain sustainability today.",
+    "sign_up": "Sign Up",
+    "signing_up": "Signing Up...",
+    "already_account": "Already have an account?",
+    "login_here": "Login here"
   }
 }

@@ -120,9 +120,9 @@ const Settings = () => {
     setSaving(true);
     try {
       await api.put('/users/notifications', userData.notifications);
-      showMessage('Notification settings saved');
+      showMessage(t('settings.notif_success'));
     } catch (err) {
-      showMessage('Failed to save notification settings', 'error');
+      showMessage(t('settings.notif_error'), 'error');
     } finally {
       setSaving(false);
     }

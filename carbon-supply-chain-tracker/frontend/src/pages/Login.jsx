@@ -19,9 +19,9 @@ const Login = () => {
     try {
       const response = await api.post('/auth/login', formData);
       localStorage.setItem('token', response.data.token);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials');
+      setError('Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -38,8 +38,12 @@ const Login = () => {
           <div className="bg-primary/20 p-3 rounded-2xl border border-primary/30 mb-4 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
             <Leaf className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-tight">{t('auth.login_title')}</h2>
-          <p className="text-slate-400 text-sm mt-2 text-center">{t('auth.login_subtitle')}</p>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-tight">
+            {t('auth.login_title', 'Welcome back to CarbonTrace')}
+          </h2>
+          <p className="text-slate-400 text-sm mt-2 text-center">
+            {t('auth.login_subtitle', 'Sign in to manage shipments, inventory, and carbon insights.')}
+          </p>
         </div>
 
         {error && (
@@ -51,13 +55,13 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-300 ml-1">Email</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
             <div className="relative group">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-primary transition-colors" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-primary transition-colors" />
               <input
                 type="email"
                 required
-                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-3 pl-11 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all shadow-inner"
                 placeholder="admin@carbontrace.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -66,13 +70,13 @@ const Login = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
             <div className="relative group">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-primary transition-colors" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-primary transition-colors" />
               <input
                 type="password"
                 required
-                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-3 pl-11 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
+                className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-slate-600 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all shadow-inner"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -83,20 +87,20 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary hover:bg-emerald-400 text-dark font-semibold py-3 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full bg-primary hover:bg-emerald-400 text-dark font-black py-4 px-4 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:cursor-not-allowed uppercase tracking-tighter"
           >
-            {loading ? t('auth.signing_in') : (
+            {loading ? t('auth.signing_in', 'Signing In...') : (
               <>
-                {t('auth.sign_in')} <ArrowRight className="w-4 h-4" />
+                {t('auth.sign_in', 'Sign In')} <ArrowRight className="w-5 h-5" />
               </>
             )}
           </button>
         </form>
 
         <p className="mt-8 text-center text-sm text-slate-400">
-          {t('auth.no_account')}{' '}
-          <Link to="/register" className="text-primary hover:text-emerald-400 font-medium transition-colors hover:underline underline-offset-4">
-            {t('auth.register_here')}
+          {t('auth.no_account', "Don’t have an account?")}{' '}
+          <Link to="/register" className="text-primary hover:text-emerald-400 font-bold transition-colors hover:underline underline-offset-4 ml-1 uppercase tracking-tighter">
+            {t('auth.register_here', 'Create account')}
           </Link>
         </p>
       </div>

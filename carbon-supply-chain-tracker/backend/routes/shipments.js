@@ -5,22 +5,24 @@ const Inventory = require('../models/Inventory');
 const { protect } = require('../middleware/auth');
 const router = express.Router();
 
+const { validate, shipmentValidationRules } = require('../middleware/validation');
+
 // @desc    Get all shipments
 // @route   GET /api/shipments
 // @access  Private
-router.get('/', protect, async (req, res) => {
+router.get('/', protect, async (req, res, next) => {
   try {
     const shipments = await Shipment.find({ user: req.user.id }).populate('inventoryId');
     res.json({ success: true, count: shipments.length, data: shipments });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 
 // @desc    Get optimization preview without saving
 // @route   POST /api/shipments/optimize
 // @access  Private
-router.post('/optimize', protect, async (req, res) => {
+router.post('/optimize', protect, shipmentValidationRules(), validate, async (req, res, next) => {
   try {
     const { distanceKm, vehicleType } = req.body;
 
@@ -32,14 +34,14 @@ router.post('/optimize', protect, async (req, res) => {
 
     res.json({ success: true, data: response.data });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 
 // @desc    Create new shipment with optimization
 // @route   POST /api/shipments
 // @access  Private
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, shipmentValidationRules(), validate, async (req, res, next) => {
   try {
     const { 
       inventoryId, originCity, destinationCity, distanceKm, vehicleType, 
@@ -52,6 +54,10 @@ router.post('/', protect, async (req, res) => {
     const inventoryItem = await Inventory.findById(inventoryId);
     if (!inventoryItem) {
       return res.status(404).json({ success: false, message: 'Inventory item not found' });
+    }
+
+    if (inventoryItem.user.toString() !== req.user.id) {
+       return res.status(401).json({ success: false, message: 'Not authorized to use this inventory' });
     }
 
     if (inventoryItem.quantity < quantity) {
@@ -72,8 +78,11 @@ router.post('/', protect, async (req, res) => {
 
     // 3. Calculate Emission
     let carbonEmissionKg = 0;
-    if (emissionFactor && distanceKm) {
-      carbonEmissionKg = distanceKm * emissionFactor;
+    const dist = parseFloat(distanceKm);
+    const eFactor = parseFloat(emissionFactor);
+
+    if (!isNaN(eFactor) && !isNaN(dist)) {
+      carbonEmissionKg = dist * eFactor;
     } else {
       carbonEmissionKg = optimizationData.currentEmissionKg || 0;
     }
@@ -106,14 +115,14 @@ router.post('/', protect, async (req, res) => {
 
     res.status(201).json({ success: true, data: shipment });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 
 // @desc    Update shipment status
 // @route   PATCH /api/shipments/:id/status
 // @access  Private
-router.patch('/:id/status', protect, async (req, res) => {
+router.patch('/:id/status', protect, async (req, res, next) => {
   try {
     const { status } = req.body;
     let shipment = await Shipment.findById(req.params.id);
@@ -134,7 +143,7 @@ router.patch('/:id/status', protect, async (req, res) => {
 
     res.json({ success: true, data: shipment });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 });
 

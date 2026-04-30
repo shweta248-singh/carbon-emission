@@ -179,21 +179,25 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-md">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">{t('dashboard.welcome')}</h1>
-          <p className="text-slate-400 mt-2">{t('dashboard.subtitle')}</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">
+            {t('dashboard.welcome') || 'Dashboard Overview'}
+          </h1>
+          <p className="text-slate-400 mt-2">
+            {t('dashboard.subtitle') || 'Monitor your supply chain efficiency and carbon footprint.'}
+          </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
           <button 
             onClick={downloadReport}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-colors border border-slate-700"
           >
-            <Download size={18} /> {t('dashboard.download_report')}
+            <Download size={18} /> {t('dashboard.download_report') || 'Download Report'}
           </button>
           <button 
             onClick={() => navigate('/operations')}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-emerald-400 text-dark rounded-xl text-sm font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_20px_rgba(16,185,129,0.5)]"
           >
-            <Plus size={18} /> {t('dashboard.new_shipment')}
+            <Plus size={18} /> {t('dashboard.new_shipment') || 'New Shipment'}
           </button>
         </div>
       </div>
@@ -201,32 +205,32 @@ const Dashboard = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <StatCard
-          title={t('dashboard.total_inventory')}
+          title={t('dashboard.total_inventory') || 'Total Inventory'}
           value={data?.totalInventory || 0}
           icon={Package}
           trend="up"
-          trendValue={t('dashboard.trend_live')}
+          trendValue={t('dashboard.trend_live') || 'Live'}
         />
         <StatCard
-          title={t('dashboard.total_shipments')}
+          title={t('dashboard.total_shipments') || 'Total Shipments'}
           value={data?.totalShipments || 0}
           icon={Truck}
           trend="up"
-          trendValue={t('dashboard.trend_live')}
+          trendValue={t('dashboard.trend_live') || 'Live'}
         />
         <StatCard
-          title={t('dashboard.carbon_emissions')}
+          title={t('dashboard.carbon_emissions') || 'Carbon Emissions'}
           value={`${data?.totalEmissions?.toFixed(1) || 0} kg`}
           icon={CloudFog}
           trend="down"
-          trendValue={t('dashboard.trend_net')}
+          trendValue={t('dashboard.trend_net') || 'Net'}
         />
         <StatCard
-          title={t('dashboard.co2_saved')}
+          title={t('dashboard.co2_saved') || 'CO2 Saved'}
           value={`${data?.totalSaved?.toFixed(1) || 0} kg`}
           icon={TrendingDown}
           trend="up"
-          trendValue={t('dashboard.trend_goal')}
+          trendValue={t('dashboard.trend_goal') || 'Target'}
         />
       </div>
 
