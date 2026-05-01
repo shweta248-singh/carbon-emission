@@ -8,6 +8,7 @@ const hpp = require('hpp');
 const mongoose = require('mongoose');
 const mongoSanitize = require('express-mongo-sanitize');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const errorHandler = require('./middleware/error');
 
 // Load env vars
@@ -60,24 +61,29 @@ app.use(helmet({
       styleSrc: [
         "'self'",
         "'unsafe-inline'",
-        "https://fonts.googleapis.com"
+        "https://fonts.googleapis.com",
+        "https://cdn.jsdelivr.net"
       ],
 
       fontSrc: [
         "'self'",
-        "https://fonts.gstatic.com"
+        "https://fonts.gstatic.com",
+        "data:"
       ],
 
       imgSrc: [
         "'self'",
         "data:",
-        "https:"
+        "https:",
+        "blob:"
       ],
 
       connectSrc: [
         "'self'",
         "https://openrouter.ai",
         "https://api.openrouteservice.org",
+        "https://fonts.googleapis.com",
+        "https://fonts.gstatic.com",
         process.env.FRONTEND_URL,
         process.env.BACKEND_URL
       ].filter(Boolean),
@@ -142,10 +148,22 @@ app.use('/api/operations', require('./routes/operations'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/notifications', require('./routes/notifications'));
 
-// Root route
-app.get('/', (req, res) => {
-  res.send('Carbon Trace API is running securely...');
-});
+// Serve frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  // Set static folder
+  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+  app.get('*', (req, res, next) => {
+    if (req.url.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.send('Carbon Trace API is running securely...');
+  });
+}
 
 // Centralized Error Handler
 app.use(errorHandler);
