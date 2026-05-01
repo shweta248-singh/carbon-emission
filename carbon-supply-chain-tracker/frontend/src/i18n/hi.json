@@ -32,7 +32,15 @@
     "logout": "लॉगआउट",
     "switch_light": "लाइट मोड पर स्विच करें",
     "switch_dark": "डार्क मोड पर स्विच करें",
-    "preferences_saved": "प्राथमिकताएं सहेजी गईं"
+    "preferences_saved": "प्राथमिकताएं सहेजी गईं",
+    "notifications": "सूचनाएं",
+    "mark_all_read": "सभी को पढ़ा हुआ मानें",
+    "no_notifications": "कोई नई सूचना नहीं",
+    "low_stock_alert": "कम स्टॉक की चेतावनी",
+    "pending_shipment": "लंबित शिपमेंट",
+    "shipment_delivered": "शिपमेंट वितरित",
+    "route_warning": "रूट चेतावनी",
+    "security_alert": "सुरक्षा चेतावनी"
   },
   "sidebar": {
     "menu": "मेनू",
@@ -319,5 +327,29 @@
     "signing_up": "साइन अप हो रहा है...",
     "already_account": "पहले से ही एक खाता है?",
     "login_here": "यहाँ लॉगिन करें"
+  },
+  "landing": {
+    "badge": "आपूर्ति श्रृंखला के लिए इको-इंटेलिजेंस",
+    "heading_start": "स्मार्टर लॉजिस्टिक्स",
+    "heading_highlight": "हरित भविष्य",
+    "hero_subtitle": "आधुनिक आपूर्ति श्रृंखलाओं के लिए AI-संचालित मार्ग अनुकूलन और कार्बन ट्रैकिंग।",
+    "try_calculator": "कार्बन कैलकुलेटर आज़माएं",
+    "create_account": "खाता बनाएं",
+    "feature_tracking": "रीयल-टाइम कार्बन ट्रैकिंग",
+    "feature_routing": "रूट अनुकूलन",
+    "feature_insights": "स्थिरता अंतर्दृष्टि",
+    "calculator_title": "कार्बन फुटप्रिंट कैलकुलेटर",
+    "calculator_subtitle": "उत्सर्जन का अनुमान लगाएं और तुरंत हरित विकल्प खोजें।",
+    "enter_city": "शहर दर्ज करें",
+    "distance_placeholder": "जैसे: 800",
+    "calculate_emissions": "उत्सर्जन की गणना करें",
+    "emission_label": "उत्सर्जन",
+    "potential_savings": "संभावित बचत",
+    "best_alternative": "सबसे अच्छा विकल्प",
+    "efficiency_gain": "दक्षता लाभ",
+    "lower_emission_alternatives": "कम उत्सर्जन वाले विकल्प",
+    "save_percent": "{{percent}}% बचाएं",
+    "register_prompt": "इस विश्लेषण को सहेजने और अपने पूर्ण आपूर्ति श्रृंखला प्रदर्शन को ट्रैक करने के लिए पंजीकरण करें।",
+    "create_account_btn": "परिणाम सहेजने के लिए खाता बनाएं"
   }
 }

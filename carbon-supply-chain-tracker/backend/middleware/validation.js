@@ -10,39 +10,45 @@ const validate = (req, res, next) => {
 
   return res.status(400).json({
     success: false,
+    message: extractedErrors[0][Object.keys(extractedErrors[0])[0]], // First error message
     errors: extractedErrors,
   });
 };
 
 const registerValidationRules = () => {
   return [
-    body('name').notEmpty().withMessage('Name is required'),
-    body('email').isEmail().withMessage('Please provide a valid email'),
-    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
+    body('name').trim().notEmpty().withMessage('Name is required').escape(),
+    body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
+    body('password')
+      .isLength({ min: 10 }).withMessage('Password must be at least 10 characters long')
+      .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
+      .matches(/[a-z]/).withMessage('Password must contain at least one lowercase letter')
+      .matches(/[0-9]/).withMessage('Password must contain at least one number')
+      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('Password must contain at least one special character'),
   ];
 };
 
 const loginValidationRules = () => {
   return [
-    body('email').isEmail().withMessage('Please provide a valid email'),
+    body('email').isEmail().withMessage('Please provide a valid email').normalizeEmail(),
     body('password').notEmpty().withMessage('Password is required'),
   ];
 };
 
 const shipmentValidationRules = () => {
   return [
-    body('originCity').notEmpty().withMessage('Origin city is required'),
-    body('destinationCity').notEmpty().withMessage('Destination city is required'),
+    body('originCity').trim().notEmpty().withMessage('Origin city is required').escape(),
+    body('destinationCity').trim().notEmpty().withMessage('Destination city is required').escape(),
     body('distanceKm')
       .isNumeric().withMessage('Distance must be a number')
       .custom(val => val >= 1 && val <= 20000).withMessage('Distance must be between 1 and 20000 km'),
-    body('vehicleType').notEmpty().withMessage('Vehicle type is required'),
+    body('vehicleType').notEmpty().withMessage('Vehicle type is required').escape(),
     body('vehicleNumber')
-      .notEmpty().withMessage('Vehicle number is required')
-      .matches(/^[A-Z]{2}[0-9]{1,2}\s?[A-Z]{1,2}\s?[0-9]{4}$/i).withMessage('Enter a valid vehicle number, e.g. UP32 AB 1234'),
+      .trim().notEmpty().withMessage('Vehicle number is required')
+      .matches(/^[A-Z]{2}[0-9]{1,2}\s?[A-Z]{1,2}\s?[0-9]{4}$/i).withMessage('Enter a valid vehicle number, e.g. UP32 AB 1234').escape(),
     body('vehicleModel')
-      .notEmpty().withMessage('Vehicle model is required')
-      .isLength({ min: 2 }).withMessage('Vehicle model must be at least 2 characters'),
+      .trim().notEmpty().withMessage('Vehicle model is required')
+      .isLength({ min: 2 }).withMessage('Vehicle model must be at least 2 characters').escape(),
     body('fuelType')
       .notEmpty().withMessage('Fuel type is required')
       .isIn(['Diesel', 'Petrol', 'CNG', 'Electric', 'Hybrid']).withMessage('Invalid fuel type'),
@@ -55,10 +61,10 @@ const shipmentValidationRules = () => {
 
 const inventoryValidationRules = () => {
   return [
-    body('productName').notEmpty().withMessage('Product name is required'),
+    body('productName').trim().notEmpty().withMessage('Product name is required').escape(),
     body('quantity').isNumeric().withMessage('Quantity must be a number').custom(val => val >= 0).withMessage('Quantity cannot be negative'),
-    body('sku').notEmpty().withMessage('SKU is required'),
-    body('warehouseLocation').notEmpty().withMessage('Warehouse location is required'),
+    body('sku').trim().notEmpty().withMessage('SKU is required').escape(),
+    body('warehouseLocation').trim().notEmpty().withMessage('Warehouse location is required').escape(),
   ];
 };
 
@@ -69,3 +75,4 @@ module.exports = {
   shipmentValidationRules,
   inventoryValidationRules
 };
+

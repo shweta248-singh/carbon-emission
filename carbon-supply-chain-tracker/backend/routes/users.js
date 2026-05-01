@@ -80,6 +80,15 @@ router.put('/password', protect, [
     user.password = newPassword;
     await user.save();
 
+    // Create persistent notification
+    const Notification = require('../models/Notification');
+    await Notification.create({
+      user: user._id,
+      title: 'security_alert',
+      message: 'Password updated successfully.',
+      type: 'security_alert'
+    });
+
     // Send notification
     let emailError = null;
     try {

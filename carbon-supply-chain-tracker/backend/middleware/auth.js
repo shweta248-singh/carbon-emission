@@ -4,7 +4,12 @@ const User = require('../models/User');
 exports.protect = async (req, res, next) => {
   let token;
 
-  if (
+  // Check cookies first (Production-grade security)
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } 
+  // Fallback to Authorization header for flexibility during transition/API testing
+  else if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {

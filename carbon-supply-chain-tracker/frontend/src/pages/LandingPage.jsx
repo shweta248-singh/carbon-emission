@@ -90,13 +90,13 @@ const LandingPage = () => {
             
             {/* Heading */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white mb-6 leading-[1.1] tracking-tight">
-              {t('landing.heading_start', 'Optimize your supply chain')} <br className="hidden lg:block" /> 
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400 italic">{t('landing.heading_highlight', 'Sustainability.')}</span>
+              {t('landing.heading_start', 'Smarter Logistics')} <br className="hidden lg:block" /> 
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400 italic">{t('landing.heading_highlight', 'Greener Future')}</span>
             </h1>
             
             {/* Subtitle */}
             <p className="text-slate-400 text-base sm:text-lg lg:text-xl leading-relaxed mb-8 max-w-2xl px-4 lg:px-0">
-              {t('landing.hero_subtitle', 'Track emissions, optimize routes, and reduce your carbon footprint with AI-driven insights.')}
+              {t('landing.hero_subtitle', 'AI-powered route optimization & carbon tracking for modern supply chains.')}
             </p>
 
             {/* Buttons */}

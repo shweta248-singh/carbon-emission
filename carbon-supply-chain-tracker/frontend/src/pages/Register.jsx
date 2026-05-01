@@ -30,7 +30,13 @@ const Register = () => {
         navigate('/login');
       }, 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      if (err.response?.data?.errors) {
+        // Extract first error message from the array
+        const firstError = Object.values(err.response.data.errors[0])[0];
+        setError(firstError);
+      } else {
+        setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -103,12 +109,16 @@ const Register = () => {
                 type="password"
                 required
                 className="w-full bg-slate-900/50 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-primary/50 transition-all shadow-inner"
-                placeholder="••••••••"
+                placeholder="Strong Password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
             </div>
+            <p className="text-[9px] text-slate-500 ml-1 leading-relaxed">
+              Min 10 chars, include upper, lower, number & symbol.
+            </p>
           </div>
+
 
           <button
             type="submit"

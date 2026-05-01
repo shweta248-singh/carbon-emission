@@ -14,7 +14,9 @@ const Sidebar = ({ isOpen, onClose }) => {
   ];
 
   return (
-    <aside className={`w-[260px] glass h-[calc(100vh-72px)] fixed top-[72px] z-40 p-5 border-r border-white/5 flex flex-col justify-between transition-all duration-300 lg:left-0 ${isOpen ? 'left-0' : '-left-[260px]'}`}>
+    <aside className={`w-[260px] glass h-[calc(100vh-72px)] fixed top-[72px] z-40 p-5 border-r border-white/5 flex flex-col justify-between transition-all duration-500 ease-in-out lg:left-0 ${
+      isOpen ? 'left-0 shadow-[0_0_50px_rgba(0,0,0,0.5)]' : '-left-[260px]'
+    }`}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between lg:hidden mb-4">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-2">{t('sidebar.menu')}</div>

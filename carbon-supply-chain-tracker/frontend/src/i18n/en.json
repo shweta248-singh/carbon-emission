@@ -32,7 +32,15 @@
     "logout": "Logout",
     "switch_light": "Switch to Light Mode",
     "switch_dark": "Switch to Dark Mode",
-    "preferences_saved": "Preferences saved"
+    "preferences_saved": "Preferences saved",
+    "notifications": "Notifications",
+    "mark_all_read": "Mark all as read",
+    "no_notifications": "No new notifications",
+    "low_stock_alert": "Low Stock Alert",
+    "pending_shipment": "Pending Shipment",
+    "shipment_delivered": "Shipment Delivered",
+    "route_warning": "Route Warning",
+    "security_alert": "Security Alert"
   },
   "sidebar": {
     "menu": "Menu",
@@ -319,5 +327,29 @@
     "signing_up": "Signing Up...",
     "already_account": "Already have an account?",
     "login_here": "Login here"
+  },
+  "landing": {
+    "badge": "Eco-Intelligence for Supply Chains",
+    "heading_start": "Smarter Logistics",
+    "heading_highlight": "Greener Future",
+    "hero_subtitle": "AI-powered route optimization & carbon tracking for modern supply chains.",
+    "try_calculator": "Try Carbon Calculator",
+    "create_account": "Create Account",
+    "feature_tracking": "Real-time carbon tracking",
+    "feature_routing": "Route optimization",
+    "feature_insights": "Sustainability insights",
+    "calculator_title": "Carbon Footprint Calculator",
+    "calculator_subtitle": "Estimate emissions and discover greener alternatives instantly.",
+    "enter_city": "Enter city",
+    "distance_placeholder": "e.g. 800",
+    "calculate_emissions": "Calculate Emissions",
+    "emission_label": "Emission",
+    "potential_savings": "Potential Savings",
+    "best_alternative": "Best Alternative",
+    "efficiency_gain": "Efficiency Gain",
+    "lower_emission_alternatives": "Lower Emission Alternatives",
+    "save_percent": "Save {{percent}}%",
+    "register_prompt": "Register to save this analysis and track your full supply chain performance.",
+    "create_account_btn": "Create Account to Save Result"
   }
 }

@@ -432,7 +432,7 @@ const OperationsHub = () => {
 
             <div className="flex items-center gap-4 bg-primary/10 p-4 rounded-xl border border-primary/20">
               <Info className="w-5 h-5 text-primary shrink-0" />
-              <p className="text-sm text-slate-300" dangerouslySetInnerHTML={{ __html: t('operations.emission_factor_hint') }}></p>
+              <p className="text-sm text-slate-300">{t('operations.emission_factor_hint')}</p>
             </div>
 
             <button type="submit" disabled={formLoading} className="w-full bg-primary hover:bg-emerald-400 text-dark py-4 rounded-2xl font-bold text-xl transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2">
@@ -478,7 +478,8 @@ const StatCard = ({ title, value, icon: Icon, color, uppercase }) => {
 
 const InventoryTable = ({ t, data, getStockBadge }) => (
   <div className="overflow-x-auto">
-    <table className="w-full text-left border-collapse">
+    {/* Desktop Table View */}
+    <table className="w-full text-left border-collapse hidden md:table">
       <thead className="bg-slate-800/40 text-slate-500 uppercase text-xs font-bold tracking-widest border-y border-white/5">
         <tr>
           <th className="px-6 py-4">{t('operations.product_details')}</th>
@@ -512,12 +513,49 @@ const InventoryTable = ({ t, data, getStockBadge }) => (
         ))}
       </tbody>
     </table>
+
+    {/* Mobile Card View */}
+    <div className="md:hidden space-y-4 p-4">
+      {data.length === 0 ? (
+        <div className="py-10"><EmptyState title={t('operations.no_items')} description={t('operations.no_items_desc')} /></div>
+      ) : data.map(item => (
+        <div key={item._id} className="bg-slate-900/40 border border-white/5 rounded-2xl p-4 space-y-3">
+          <div className="flex justify-between items-start">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-primary">
+                <Box className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="font-bold text-white text-sm">{item.productName}</div>
+                <div className="text-[10px] text-slate-500">{item.category || t('operations.standard')}</div>
+              </div>
+            </div>
+            {getStockBadge(item.quantity)}
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+            <div>
+              <p className="text-[10px] text-slate-500 uppercase">{t('operations.sku')}</p>
+              <p className="text-xs text-white font-mono">{item.sku}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-500 uppercase">{t('operations.stock_level')}</p>
+              <p className="text-xs text-white font-semibold">{item.quantity} units</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-500 uppercase">{t('operations.location')}</p>
+            <p className="text-xs text-slate-400">{item.warehouseLocation}</p>
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
-const ShipmentTable = ({ t, VEHICLE_DATA, data, getStatusBadge }) => (
+const ShipmentTable = ({ t, VEHICLE_DATA, data, updateStatus }) => (
   <div className="overflow-x-auto">
-    <table className="w-full text-left border-collapse">
+    {/* Desktop View */}
+    <table className="w-full text-left border-collapse hidden lg:table">
       <thead className="bg-slate-800/40 text-slate-500 uppercase text-xs font-bold tracking-widest border-y border-white/5">
         <tr>
           <th className="px-6 py-4">{t('operations.route_info')}</th>
@@ -595,6 +633,65 @@ const ShipmentTable = ({ t, VEHICLE_DATA, data, getStatusBadge }) => (
         ))}
       </tbody>
     </table>
+
+    {/* Mobile View */}
+    <div className="lg:hidden space-y-4 p-4">
+      {data.length === 0 ? (
+        <div className="py-10"><EmptyState title={t('operations.no_shipments')} description={t('operations.no_shipments_desc')} /></div>
+      ) : data.map(ship => (
+        <div key={ship._id} className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 space-y-4 shadow-xl">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${VEHICLE_DATA[ship.vehicleType]?.bg || 'bg-slate-800'}`}>
+                {React.createElement(VEHICLE_DATA[ship.vehicleType]?.icon || Truck, { className: `w-5 h-5 ${VEHICLE_DATA[ship.vehicleType]?.color || 'text-slate-400'}` })}
+              </div>
+              <div>
+                <p className="text-white font-bold">{ship.origin} → {ship.destination}</p>
+                <p className="text-[10px] text-slate-500 uppercase">{ship.vehicleNumber || 'No Plate'}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 py-3 border-y border-white/5">
+            <div>
+              <p className="text-[10px] text-slate-500 uppercase">{t('dashboard.carbon_emissions')}</p>
+              <p className="text-sm font-bold text-orange-400">{Math.round(ship.carbonEmissionKg)} kg</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-500 uppercase">{t('optimization.savings')}</p>
+              <p className="text-sm font-bold text-emerald-400">{Math.round(ship.savingsKg)} kg</p>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="text-xs text-slate-400">
+              {t(`vehicles.${ship.vehicleType}`, ship.vehicleType)} • {ship.distanceKm} km
+            </div>
+            <div>
+              {ship.status === "Pending" || ship.status === "pending" ? (
+                <button 
+                  onClick={() => updateStatus(ship._id, "In Transit")}
+                  className="bg-amber-500 text-dark px-4 py-1.5 rounded-lg text-xs font-bold"
+                >
+                  Start
+                </button>
+              ) : ship.status === "In Transit" || ship.status === "in_transit" ? (
+                <button 
+                  onClick={() => updateStatus(ship._id, "Delivered")}
+                  className="bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold"
+                >
+                  Deliver
+                </button>
+              ) : (
+                <div className="flex items-center gap-1 text-emerald-400 font-bold text-xs uppercase">
+                  Delivered <CheckCircle2 size={14} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
@@ -613,12 +710,12 @@ const ArrowRight = ({ className }) => (
 
 const Modal = ({ title, onClose, children, wide }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in zoom-in duration-300">
-    <div className={`glass-card rounded-[32px] w-full ${wide ? 'max-w-4xl' : 'max-w-md'} p-8 relative border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden max-h-[90vh] overflow-y-auto`}>
+    <div className={`glass-card rounded-[32px] w-full ${wide ? 'max-w-4xl' : 'max-w-md'} p-6 md:p-8 relative border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden max-h-[90vh] overflow-y-auto`}>
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-emerald-500"></div>
-      <button onClick={onClose} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-colors">
+      <button onClick={onClose} className="absolute top-4 right-4 md:top-6 md:right-6 p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-colors">
         <X className="w-6 h-6" />
       </button>
-      <h3 className="text-2xl font-extrabold text-white mb-8 flex items-center gap-3">
+      <h3 className="text-xl md:text-2xl font-extrabold text-white mb-6 md:mb-8 flex items-center gap-3">
         <div className="w-2 h-8 bg-primary rounded-full"></div>
         {title}
       </h3>

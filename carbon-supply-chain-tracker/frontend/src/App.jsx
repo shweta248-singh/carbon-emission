@@ -18,8 +18,8 @@ import LoadingSpinner from './components/LoadingSpinner';
 
 const Layout = ({ children, hideSidebar = false }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const token = localStorage.getItem('token');
-  const isLoggedIn = !!token;
+  const user = JSON.parse(localStorage.getItem('user'));
+  const isLoggedIn = !!user;
 
   return (
     <div className="min-h-screen bg-darker text-white">
@@ -58,44 +58,43 @@ function App() {
 
   useEffect(() => {
     const initializeApp = async () => {
-      const token = localStorage.getItem('token');
-      // Set language from localStorage even if not logged in (for guests)
+      // Set language from localStorage
       const guestLng = localStorage.getItem('i18nextLng');
       if (guestLng && i18n.language !== guestLng) {
         await i18n.changeLanguage(guestLng);
       }
       
       const guestTheme = localStorage.getItem('theme') || 'dark';
-      if (!token) {
+      
+      try {
+        // Production-grade: check session via /users/me (uses HttpOnly cookie)
+        const response = await api.get('/users/me');
+        const user = response.data.data;
+        
+        // Sync local user data
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        if (user.preferences) {
+          const { language, theme } = user.preferences;
+          
+          if (language && i18n.language !== language) {
+            await i18n.changeLanguage(language);
+          }
+          
+          if (theme === 'light') {
+            document.documentElement.classList.add('light');
+          } else {
+            document.documentElement.classList.remove('light');
+          }
+        }
+      } catch (err) {
+        // Not logged in or session expired
+        localStorage.removeItem('user');
         if (guestTheme === 'light') document.documentElement.classList.add('light');
         else document.documentElement.classList.remove('light');
+      } finally {
+        setInitializing(false);
       }
-
-      if (token) {
-        try {
-          const response = await api.get('/users/me');
-          const user = response.data.data;
-          
-          if (user.preferences) {
-            const { language, theme } = user.preferences;
-            
-            // Apply language
-            if (language && i18n.language !== language) {
-              await i18n.changeLanguage(language);
-            }
-            
-            // Apply theme
-            if (theme === 'light') {
-              document.documentElement.classList.add('light');
-            } else {
-              document.documentElement.classList.remove('light');
-            }
-          }
-        } catch (err) {
-          console.error('Failed to initialize app preferences:', err);
-        }
-      }
-      setInitializing(false);
     };
 
     initializeApp();
@@ -112,12 +111,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes with Layout */}
         <Route path="/" element={<Layout hideSidebar><LandingPage /></Layout>} />
         <Route path="/login" element={<Layout hideSidebar><Login /></Layout>} />
         <Route path="/register" element={<Layout hideSidebar><Register /></Layout>} />
         
-        {/* Protected Dashboard Routes */}
         <Route
           path="/dashboard"
           element={
@@ -173,7 +170,6 @@ function App() {
           }
         />
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
@@ -181,3 +177,4 @@ function App() {
 }
 
 export default App;
+

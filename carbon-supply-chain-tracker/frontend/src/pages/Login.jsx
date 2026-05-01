@@ -18,10 +18,11 @@ const Login = () => {
 
     try {
       const response = await api.post('/auth/login', formData);
-      localStorage.setItem('token', response.data.token);
+      // Token is now in HttpOnly cookie, we only store user info for UI
+      localStorage.setItem('user', JSON.stringify(response.data));
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid email or password');
+      setError(err.response?.data?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

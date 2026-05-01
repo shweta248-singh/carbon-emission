@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { api } from "../api/axios";
 
 const COLORS = {
   primary: "#10b981",
@@ -76,23 +77,22 @@ export default function Chatbot() {
     setTyping(true);
 
     try {
-      const apiUrl =
-        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-
-      const res = await fetch(`${apiUrl}/chatbot`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: text,
-          lang: i18n.language || "en",
-        }),
+      const response = await api.post('/chatbot', {
+        message: text,
+        lang: i18n.language || "en",
       });
 
-      const data = await res.json();
-
-      if (res.status === 429) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          text: response.data.reply || "No response from assistant.",
+        },
+      ]);
+    } catch (err) {
+      console.error("CarbonTrace Chat Error:", err);
+      
+      if (err.response?.status === 429) {
         setError("Too many messages. Please wait a minute and try again.");
         setMessages((prev) => [
           ...prev,
@@ -104,19 +104,6 @@ export default function Chatbot() {
         return;
       }
 
-      if (!res.ok) {
-        throw new Error(data?.reply || "Chatbot request failed.");
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          type: "bot",
-          text: data.reply || "No response from assistant.",
-        },
-      ]);
-    } catch (err) {
-      console.error("CarbonTrace Chat Error:", err);
       setMessages((prev) => [
         ...prev,
         {

@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
     password: {
     type: String,
     required: [true, 'Please add a password'],
-    minlength: 8,
+    minlength: 10,
     select: false,
   },
   preferences: {

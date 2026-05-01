@@ -2,23 +2,24 @@ import axios from 'axios';
 
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  withCredentials: true, // Required for HttpOnly cookies
 });
 
+// Request interceptor: No longer need to manually inject token from localStorage
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
   return config;
 });
 
+// Response interceptor: Handle unauthorized errors by cleaning up local state
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
+      // Clear user info from local state (but token is in HttpOnly cookie)
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -26,3 +27,4 @@ API.interceptors.response.use(
 
 export const api = API;
 export default API;
+
