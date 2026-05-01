@@ -29,7 +29,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       name: user.name,
       email: user.email,
       // Still sending token for transition period, but frontend should prefer cookies
-      token 
+      
     });
 };
 
