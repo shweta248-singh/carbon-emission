@@ -28,7 +28,7 @@ const sendTokenResponse = (user, statusCode, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      // Still sending token for transition period, but frontend should prefer cookies
+      
       
     });
 };
@@ -91,6 +91,10 @@ router.post('/login', loginValidationRules(), validate, async (req, res, next) =
 // @route   GET /api/auth/logout
 // @access  Private
 router.get('/logout', (req, res) => {
+  // res.cookie('token', 'none', {
+  //   expires: new Date(Date.now() + 10 * 1000),
+  //   httpOnly: true,
+  // });
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true,
