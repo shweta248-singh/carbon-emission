@@ -97,13 +97,27 @@ app.use(express.json({ limit: '10kb' }));
 app.use(mongoSanitize());
 app.use(hpp());
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://carbon-emission-1-dyuv.onrender.com',
+  'https://carbon-emission-2-dz5c.onrender.com',
+  'http://localhost:5173'
+].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
+
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Specific Rate limiting
 const globalLimiter = rateLimit({
