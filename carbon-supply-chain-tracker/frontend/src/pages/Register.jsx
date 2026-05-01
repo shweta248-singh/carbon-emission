@@ -46,11 +46,8 @@ const Register = () => {
 
       <div className="relative z-10 w-full max-w-md glass-card rounded-[40px] p-10 border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-500">
         <div className="flex flex-col items-center mb-10 text-center">
-          <Link to="/" className="bg-primary/20 p-3 rounded-2xl border border-primary/30 mb-4 hover:scale-105 transition-transform">
-            <Leaf className="w-8 h-8 text-primary" />
-          </Link>
-          <h2 className="text-3xl font-black text-white tracking-tight mb-2 uppercase">Create Account</h2>
-          <p className="text-slate-400 text-sm">Start your sustainability journey today.</p>
+          <h2 className="text-3xl font-black text-white tracking-tight mb-2 uppercase">{t('auth.register_title', 'Create Account')}</h2>
+          <p className="text-slate-400 text-sm">{t('auth.register_subtitle', 'Start your sustainability journey today.')}</p>
         </div>
 
         {error && (

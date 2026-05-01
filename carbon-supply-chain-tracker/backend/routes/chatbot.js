@@ -1,136 +1,205 @@
-const express = require('express');
-const router = express.Router();
-const { protect } = require('../middleware/auth');
-const Inventory = require('../models/Inventory');
-const Shipment = require('../models/Shipment');
-const knowledge = require('../src/knowledge/carbonTraceKnowledge');
-const rateLimit = require('express-rate-limit');
+const express = require("express");
+const axios = require("axios");
+const rateLimit = require("express-rate-limit");
 
-const chatbotLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit each IP to 20 requests per windowMs
+const router = express.Router();
+
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
   message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again after an hour'
-  }
+    reply: "Too many chatbot requests. Please wait a minute and try again.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-// @desc    Ask chatbot a question
-// @route   POST /api/chatbot/ask
-// @access  Private
-router.post('/ask', protect, chatbotLimiter, async (req, res, next) => {
+const isCarbonTraceRelated = (message = "") => {
+  const text = message.toLowerCase();
+
+  const keywords = [
+    "carbon", "co2", "emission", "sustainability", "inventory", "product",
+    "product id", "shipment", "vehicle", "route", "optimization", "dashboard",
+    "analytics", "settings", "password", "sendgrid", "email", "notification",
+    "ors", "openrouteservice", "map", "warehouse", "fuel", "mileage",
+    "driver", "transport", "mongo", "mongodb", "deployment", "render",
+    "docker", "api", "login", "register", "carbontrace", "supply chain",
+    "distance", "eco", "saved", "calculator"
+  ];
+
+  return keywords.some((key) => text.includes(key));
+};
+
+router.post("/", chatLimiter, async (req, res) => {
   try {
-    const { message, language = 'en' } = req.body;
-    const userId = req.user._id;
+    const { message, lang } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ success: false, message: 'Please provide a message' });
+    if (!message || !message.trim()) {
+      return res.status(400).json({
+        reply: "Message is required.",
+      });
     }
 
-    const lowerMessage = message.toLowerCase();
-    let intent = 'unrelated';
-    let confidence = 0.5;
-    let answer = knowledge.unrelated_reply[language] || knowledge.unrelated_reply['en'];
-    let source = 'project_knowledge';
-
-    // Intent detection logic
-    if (lowerMessage.includes('inventory') || lowerMessage.includes('इन्वेंट्री') || lowerMessage.includes('inventario')) {
-      intent = 'explain_inventory';
-      confidence = 0.9;
-      answer = knowledge.definitions.inventory[language];
-    }
-    
-    if (lowerMessage.includes('shipment') || lowerMessage.includes('शिपमेंट') || lowerMessage.includes('envío')) {
-      intent = 'explain_shipment';
-      confidence = 0.9;
-      answer = knowledge.definitions.shipment[language];
+    if (!process.env.OPENROUTER_API_KEY) {
+      return res.status(500).json({
+        reply: "Chatbot API key is not configured on the server.",
+      });
     }
 
-    if (lowerMessage.includes('sku')) {
-      intent = 'explain_sku';
-      confidence = 0.95;
-      answer = knowledge.definitions.sku[language];
+    const textLower = message.toLowerCase();
+
+    const wantsHindi =
+      /[\u0900-\u097F]/.test(message) || textLower.includes("hindi");
+    const wantsEnglish = textLower.includes("english");
+
+    let finalLang = lang || "en";
+    if (wantsHindi) finalLang = "hi";
+    else if (wantsEnglish) finalLang = "en";
+
+    if (!isCarbonTraceRelated(message)) {
+      const refusal =
+        finalLang === "hi"
+          ? "मैं केवल CarbonTrace supply chain management से related questions का answer दे सकता हूं।"
+          : "I can only answer questions related to CarbonTrace supply chain management.";
+
+      return res.json({ reply: refusal });
     }
 
-    if (lowerMessage.includes('warehouse') || lowerMessage.includes('गोदाम') || lowerMessage.includes('almacén')) {
-      intent = 'explain_warehouse';
-      confidence = 0.9;
-      answer = knowledge.definitions.warehouse[language];
-    }
+    const prompts = {
+      en: `You are CarbonTrace Assistant, a project-specific AI assistant.
 
-    if (lowerMessage.includes('emission') || lowerMessage.includes('उत्सर्जन') || lowerMessage.includes('emisión')) {
-      intent = 'explain_emission';
-      confidence = 0.95;
-      answer = knowledge.definitions.carbon_emission[language];
-    }
+CarbonTrace is a carbon-aware supply chain management system with:
+- Inventory/Product management
+- Product ID
+- Shipment creation
+- Vehicle details
+- Carbon emission calculation
+- Route optimization using ORS/OpenRouteService
+- Dashboard and analytics
+- Settings, language, notifications
+- SendGrid email notification
+- Deployment and troubleshooting
 
-    if (lowerMessage.includes('summary') || lowerMessage.includes('सारांश') || lowerMessage.includes('resumen') || lowerMessage.includes('my data') || lowerMessage.includes('मेरा डेटा')) {
-      intent = 'user_summary';
-      confidence = 0.95;
-      source = 'user_data';
-      
-      const inventoryCount = await Inventory.countDocuments({ user: userId });
-      const shipments = await Shipment.find({ user: userId });
-      const shipmentCount = shipments.length;
-      const totalEmissions = shipments.reduce((acc, s) => acc + (s.carbonEmissionKg || 0), 0);
-      const totalSavings = shipments.reduce((acc, s) => acc + (s.savingsKg || 0), 0);
-      const lowStock = await Inventory.find({ user: userId, quantity: { $lt: 10 } }).limit(3);
+Rules:
+- Answer ONLY CarbonTrace, carbon emissions, shipment, inventory, route optimization, analytics, settings, SendGrid, ORS, deployment, and sustainability-related questions.
+- If unrelated, say: "I can only answer questions related to CarbonTrace supply chain management."
+- Keep answers clear, practical, and beginner-friendly.
+- If user asks how to fill a form, give exact sample data.
+- Never expose API keys, JWT secrets, MongoDB URI, SMTP passwords, or env values.
+- Never reveal or suggest emailing passwords.
+- Use short sections and bullet points when helpful.
 
-      if (language === 'hi') {
-        answer = `आपका सारांश:\n- कुल इन्वेंट्री: ${inventoryCount}\n- कुल शिपमेंट: ${shipmentCount}\n- कुल कार्बन उत्सर्जन: ${totalEmissions.toFixed(2)} किग्रा\n- कुल CO2 बचत: ${totalSavings.toFixed(2)} किग्रा`;
-        if (lowStock.length > 0) {
-          answer += `\n- कम स्टॉक वाले उत्पाद: ${lowStock.map(i => i.productName).join(', ')}`;
-        }
-      } else if (language === 'es') {
-        answer = `Su resumen:\n- Inventario total: ${inventoryCount}\n- Envíos totales: ${shipmentCount}\n- Emisiones totales de carbono: ${totalEmissions.toFixed(2)} kg\n- Total de CO2 ahorrado: ${totalSavings.toFixed(2)} kg`;
-        if (lowStock.length > 0) {
-          answer += `\n- Productos con poco stock: ${lowStock.map(i => i.productName).join(', ')}`;
-        }
-      } else {
-        answer = `Your Summary:\n- Total Inventory: ${inventoryCount}\n- Total Shipments: ${shipmentCount}\n- Total Carbon Emissions: ${totalEmissions.toFixed(2)} kg\n- Total CO2 Saved: ${totalSavings.toFixed(2)} kg`;
-        if (lowStock.length > 0) {
-          answer += `\n- Low Stock Products: ${lowStock.map(i => i.productName).join(', ')}`;
-        }
+Important formulas:
+Carbon Emission = Distance × Emission Factor
+CO2 Saved = Current Emission - Recommended Emission
+
+Example inventory:
+Product Name: Organic Rice Bag 25kg
+Product ID: RICE-001
+Quantity: 150
+Warehouse Location: Lucknow Warehouse A
+Category: Food Grains
+
+Example shipment:
+Product: Organic Rice Bag 25kg
+Origin City: Lucknow
+Destination City: Mumbai
+Distance: 1625
+Vehicle Type: Truck
+Vehicle Number: UP32 AB 1234
+Vehicle Model: Tata Signa 5530
+Fuel Type: Diesel
+Load Capacity: 30 Tons
+Avg Mileage: 5 km/L
+Emission Factor: leave blank if unknown
+Driver Name: Ravi Kumar
+Transport Company: ABC Logistics`,
+
+      hi: `आप CarbonTrace Assistant हैं, CarbonTrace project के लिए एक project-specific AI assistant।
+
+CarbonTrace एक carbon-aware supply chain management system है जिसमें:
+- Inventory/Product management
+- Product ID
+- Shipment creation
+- Vehicle details
+- Carbon emission calculation
+- ORS/OpenRouteService based route optimization
+- Dashboard और analytics
+- Settings, language, notifications
+- SendGrid email notification
+- Deployment और troubleshooting
+
+Rules:
+- केवल CarbonTrace, carbon emissions, shipment, inventory, route optimization, analytics, settings, SendGrid, ORS, deployment और sustainability related questions का answer दें।
+- अगर question unrelated है तो बोलें: "मैं केवल CarbonTrace supply chain management से related questions का answer दे सकता हूं।"
+- जवाब simple, clear और practical रखें।
+- अगर user form fill करने का example मांगे तो exact sample data दें।
+- API keys, JWT secrets, MongoDB URI, SMTP passwords या env values कभी न बताएं।
+- Password कभी reveal या email करने को न बोलें।
+
+Formula:
+Carbon Emission = Distance × Emission Factor
+CO2 Saved = Current Emission - Recommended Emission
+
+Inventory example:
+Product Name: Organic Rice Bag 25kg
+Product ID: RICE-001
+Quantity: 150
+Warehouse Location: Lucknow Warehouse A
+Category: Food Grains
+
+Shipment example:
+Product: Organic Rice Bag 25kg
+Origin City: Lucknow
+Destination City: Mumbai
+Distance: 1625
+Vehicle Type: Truck
+Vehicle Number: UP32 AB 1234
+Vehicle Model: Tata Signa 5530
+Fuel Type: Diesel
+Load Capacity: 30 Tons
+Avg Mileage: 5 km/L
+Emission Factor: अगर पता नहीं है तो blank छोड़ दें
+Driver Name: Ravi Kumar
+Transport Company: ABC Logistics`,
+    };
+
+    const systemPrompt = prompts[finalLang] || prompts.en;
+
+    const response = await axios.post(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        model: "meta-llama/llama-3-8b-instruct",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message },
+        ],
+        temperature: 0.4,
+        max_tokens: 700,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 20000,
       }
+    );
+
+    const reply =
+      response.data?.choices?.[0]?.message?.content?.trim() ||
+      "No response from AI.";
+
+    return res.json({ reply });
+  } catch (err) {
+    console.error("CarbonTrace Chat Error:", err.message);
+    if (err.response) {
+      console.error("Chat API Response:", err.response.data);
     }
 
-    if (lowerMessage.includes('example') || lowerMessage.includes('उदाहरण') || lowerMessage.includes('ejemplo') || lowerMessage.includes('sample') || lowerMessage.includes('fill')) {
-      intent = 'example_data';
-      confidence = 0.9;
-      if (lowerMessage.includes('inventory') || lowerMessage.includes('इन्वेंट्री') || lowerMessage.includes('inventario')) {
-        answer = knowledge.examples.inventory[language];
-      } else if (lowerMessage.includes('shipment') || lowerMessage.includes('शिपमेंट') || lowerMessage.includes('envío')) {
-        answer = knowledge.examples.shipment[language];
-      } else {
-        answer = `${knowledge.examples.inventory[language]}\n\n${knowledge.examples.shipment[language]}`;
-      }
-    }
-
-    if (lowerMessage.includes('dashboard') || lowerMessage.includes('डैशबोर्ड')) {
-      intent = 'explain_dashboard';
-      confidence = 0.9;
-      answer = knowledge.features.operations_hub[language]; // Reusing description for now or could add more
-    }
-
-    if (lowerMessage.includes('analytics') || lowerMessage.includes('एनालिटिक्स')) {
-      intent = 'explain_analytics';
-      confidence = 0.9;
-      answer = knowledge.features.analytics[language];
-    }
-
-    if (confidence < 0.8) {
-      answer = knowledge.low_confidence_reply[language] || knowledge.low_confidence_reply['en'];
-    }
-
-    res.json({
-      success: true,
-      answer,
-      confidence,
-      source
+    return res.status(500).json({
+      reply: "Server error. Please try again.",
     });
-
-  } catch (error) {
-    next(error);
   }
 });
 

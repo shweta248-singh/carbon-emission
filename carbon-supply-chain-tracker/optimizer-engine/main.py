@@ -6,12 +6,19 @@ import numpy as np
 app = FastAPI(title="Carbon Supply Chain Optimizer")
 
 # Emission factors (kg CO2 per km per unit weight/distance)
-# Source: Simplified estimates for demonstration
+# Source: Standardized estimates for demonstration
 EMISSION_FACTORS = {
     "truck": 0.105,
-    "van": 0.085,
-    "rail": 0.025,
-    "ship": 0.015
+    "mini_truck": 0.09,
+    "van": 0.16,
+    "pickup": 0.11,
+    "bike": 0.04,
+    "car": 0.12,
+    "rail": 0.04,
+    "ship": 0.015,
+    "air_cargo": 0.60,
+    "container_truck": 0.13,
+    "refrigerated_truck": 0.15
 }
 
 class OptimizationRequest(BaseModel):

@@ -217,6 +217,7 @@ const Inventory = () => {
                   <label className="text-sm font-medium text-slate-300">{t('inventory.sku')}</label>
                   <input
                     type="text" required
+                    placeholder={t('operations.sku_placeholder', 'e.g. PROD-001')}
                     className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl py-2 px-3 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
                     value={formData.sku} onChange={(e) => setFormData({...formData, sku: e.target.value})}
                   />

@@ -60,7 +60,7 @@ const Shipments = () => {
 
   const updateStatus = async (id, status) => {
     try {
-      await api.patch(`/shipments/${id}/status`, { status });
+      await api.put(`/shipments/${id}/status`, { status });
       showNotification(`${t('shipments.status_updated_to')} ${status.replace('_', ' ')}`);
       fetchData();
     } catch (err) {
@@ -160,14 +160,14 @@ const Shipments = () => {
                       <div className="text-xs text-slate-500 mt-1">{shipment.distanceKm} km total distance</div>
                     </td>
                     <td className="px-6 py-4 capitalize text-slate-300">
-                      {t(`vehicles.${shipment.vehicleType}`) || shipment.vehicleType}
+                      {t(`vehicles.${shipment.vehicleType}`, shipment.vehicleType?.replace('_', ' '))}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-medium text-red-400">{shipment.carbonEmissionKg?.toFixed(1) || 0} kg CO2</span>
                         {shipment.recommendedVehicle && shipment.recommendedVehicle !== shipment.vehicleType && (
                           <div className="text-[10px] text-slate-400 mt-0.5">
-                            {t('optimization.recommended')}: <span className="text-emerald-400 capitalize">{t(`vehicles.${shipment.recommendedVehicle}`) || shipment.recommendedVehicle}</span>
+                            {t('optimization.recommended', 'Recommended')}: <span className="text-emerald-400 capitalize">{t(`vehicles.${shipment.recommendedVehicle}`, shipment.recommendedVehicle)}</span>
                           </div>
                         )}
                         {shipment.savingsKg > 0 && (
@@ -182,17 +182,17 @@ const Shipments = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        {shipment.status === 'pending' && (
+                        {(shipment.status === 'Pending' || shipment.status === 'pending') && (
                           <button 
-                            onClick={() => updateStatus(shipment._id, 'in_transit')}
+                            onClick={() => updateStatus(shipment._id, 'In Transit')}
                             className="p-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-colors title='Mark In Transit'"
                           >
                             <Truck className="w-4 h-4" />
                           </button>
                         )}
-                        {shipment.status === 'in_transit' && (
+                        {(shipment.status === 'In Transit' || shipment.status === 'in_transit') && (
                           <button 
-                            onClick={() => updateStatus(shipment._id, 'delivered')}
+                            onClick={() => updateStatus(shipment._id, 'Delivered')}
                             className="p-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg transition-colors title='Mark Delivered'"
                           >
                             <CheckCircle2 className="w-4 h-4" />

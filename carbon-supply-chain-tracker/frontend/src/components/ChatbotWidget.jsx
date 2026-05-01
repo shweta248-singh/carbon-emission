@@ -1,202 +1,467 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, HelpCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { api } from '../api/axios';
+import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-const ChatbotWidget = () => {
-  const { t, i18n } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+const COLORS = {
+  primary: "#10b981",
+  primaryDark: "#059669",
+  botBg: "#0f172a",
+  botText: "#e5e7eb",
+  userBg: "#10b981",
+  userText: "#020617",
+  panelBg: "rgba(2, 6, 23, 0.92)",
+  border: "rgba(255,255,255,0.1)",
+};
+
+export default function Chatbot() {
+  const { i18n } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      type: "bot",
+      text: "Hi, I’m CarbonTrace Assistant 👋 Ask me about inventory, shipment, CO₂ calculation, route optimization, analytics, or project setup.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const [error, setError] = useState("");
+  const chatEndRef = useRef(null);
 
   useEffect(() => {
-    // Initial message based on language
-    const initialMsgs = {
-      en: 'Hello! I am your CarbonTrace assistant. How can I help you today?',
-      hi: 'नमस्ते! मैं आपका CarbonTrace सहायक हूँ। मैं आज आपकी क्या सहायता कर सकता हूँ?',
-      es: '¡Hola! Soy su asistente de CarbonTrace. ¿Cómo puedo ayudarle hoy?'
-    };
-    setMessages([{ role: 'bot', text: initialMsgs[i18n.language] || initialMsgs.en }]);
-  }, [i18n.language]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    if (visible) {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, typing, visible]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const styleTag = document.createElement("style");
+    styleTag.innerHTML = `
+      @keyframes carbon-message-entry {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes carbon-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+        70% { box-shadow: 0 0 0 18px rgba(16,185,129,0); }
+        100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+      }
+      @keyframes carbon-dot {
+        0%, 80%, 100% { transform: translateY(0); opacity: .4; }
+        40% { transform: translateY(-5px); opacity: 1; }
+      }
+      .carbon-chat-scroll::-webkit-scrollbar { width: 5px; }
+      .carbon-chat-scroll::-webkit-scrollbar-thumb { background: rgba(16,185,129,.4); border-radius: 99px; }
+    `;
+    document.head.appendChild(styleTag);
+    return () => document.head.removeChild(styleTag);
+  }, []);
 
-  const handleSend = async (msgText) => {
-    const text = msgText || input;
-    if (!text.trim()) return;
+  const quickActions = [
+    "How to add inventory?",
+    "How to create shipment?",
+    "How is CO2 calculated?",
+    "Explain route optimization",
+    "Show sample data",
+    "Why email notification not coming?",
+  ];
 
-    setMessages(prev => [...prev, { role: 'user', text }]);
-    setInput('');
-    setLoading(true);
+  const sendMessage = async (textParam) => {
+    const text = textParam || input;
+
+    if (!text.trim() || typing) return;
+
+    setMessages((prev) => [...prev, { type: "user", text }]);
+    setInput("");
+    setError("");
+    setTyping(true);
 
     try {
-      const response = await api.post('/chatbot/ask', {
-        message: text,
-        language: i18n.language || 'en'
+      const apiUrl =
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+      const res = await fetch(`${apiUrl}/chatbot`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: text,
+          lang: i18n.language || "en",
+        }),
       });
 
-      if (response.data.success) {
-        setMessages(prev => [...prev, { role: 'bot', text: response.data.answer }]);
+      const data = await res.json();
+
+      if (res.status === 429) {
+        setError("Too many messages. Please wait a minute and try again.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            type: "bot",
+            text: "Too many messages. Please wait a minute and try again.",
+          },
+        ]);
+        return;
       }
-    } catch (error) {
-      console.error('Chatbot error:', error);
-      setMessages(prev => [...prev, { role: 'bot', text: 'Sorry, I encountered an error. Please try again.' }]);
+
+      if (!res.ok) {
+        throw new Error(data?.reply || "Chatbot request failed.");
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          text: data.reply || "No response from assistant.",
+        },
+      ]);
+    } catch (err) {
+      console.error("CarbonTrace Chat Error:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "bot",
+          text: "Server error. Please check backend/chatbot API and try again.",
+        },
+      ]);
     } finally {
-      setLoading(false);
+      setTyping(false);
     }
   };
 
-  const getQuickQuestions = () => {
-    const labels = {
-      en: [
-        { label: 'How to add inventory?', value: 'How to add inventory?' },
-        { label: 'Create shipment?', value: 'How to create shipment?' },
-        { label: 'Emission calculation?', value: 'How is carbon emission calculated?' },
-        { label: 'Show my summary', value: 'Show my summary' },
-        { label: 'Sample data', value: 'Give sample data' }
-      ],
-      hi: [
-        { label: 'इन्वेंट्री कैसे जोड़ें?', value: 'How to add inventory?' },
-        { label: 'शिपमेंट कैसे बनाएं?', value: 'How to create shipment?' },
-        { label: 'उत्सर्जन की गणना?', value: 'How is carbon emission calculated?' },
-        { label: 'मेरा सारांश दिखाएं', value: 'Show my summary' },
-        { label: 'नमूना डेटा दें', value: 'Give sample data' }
-      ],
-      es: [
-        { label: '¿Cómo agregar inventario?', value: 'How to add inventory?' },
-        { label: '¿Crear envío?', value: 'How to create shipment?' },
-        { label: '¿Cálculo de emisiones?', value: 'How is carbon emission calculated?' },
-        { label: 'Mostrar mi resumen', value: 'Show my summary' },
-        { label: 'Dar datos de muestra', value: 'Give sample data' }
-      ]
-    };
-    return labels[i18n.language] || labels.en;
-  };
+  const BotAvatar = () => (
+    <div
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: "rgba(16,185,129,0.12)",
+        border: "1px solid rgba(16,185,129,0.3)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      🌱
+    </div>
+  );
 
-  const quickQuestions = getQuickQuestions();
+  const UserAvatar = () => (
+    <div
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: "50%",
+        background: "#10b981",
+        color: "#020617",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 800,
+        flexShrink: 0,
+      }}
+    >
+      U
+    </div>
+  );
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
-      {/* Chat Window */}
-      {isOpen && (
-        <div className="mb-4 w-[380px] h-[520px] glass-card rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
-          {/* Header */}
-          <div className="p-5 bg-gradient-to-r from-primary/20 to-emerald-500/20 border-b border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/20 p-2 rounded-xl text-primary">
-                <Bot className="w-5 h-5" />
+    <>
+      <button
+        onClick={() => {
+          if (!open) {
+            setOpen(true);
+            setTimeout(() => setVisible(true), 20);
+          } else {
+            setVisible(false);
+            setTimeout(() => setOpen(false), 250);
+          }
+        }}
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          width: 62,
+          height: 62,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #10b981, #059669)",
+          color: "#020617",
+          border: "none",
+          fontSize: 26,
+          cursor: "pointer",
+          zIndex: 9999,
+          boxShadow: "0 12px 32px rgba(16,185,129,0.35)",
+          animation: open ? "none" : "carbon-pulse 2.8s infinite",
+        }}
+        title="CarbonTrace Assistant"
+      >
+        {open ? "×" : "🌱"}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 96,
+            right: 24,
+            width: 390,
+            maxWidth: "calc(100vw - 32px)",
+            height: "72vh",
+            maxHeight: 650,
+            minHeight: 470,
+            background: COLORS.panelBg,
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 24,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            zIndex: 9998,
+            opacity: visible ? 1 : 0,
+            transform: visible
+              ? "translateY(0) scale(1)"
+              : "translateY(20px) scale(0.96)",
+            transition: "all .25s ease",
+            boxShadow: "0 24px 70px rgba(0,0,0,.45)",
+          }}
+        >
+          <div
+            style={{
+              padding: "18px 20px",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background:
+                "linear-gradient(135deg, rgba(16,185,129,.15), rgba(15,23,42,.8))",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "#f9fafb",
+                  fontSize: 17,
+                  fontWeight: 800,
+                }}
+              >
+                CarbonTrace Assistant
               </div>
-              <div>
-                <h3 className="text-white font-bold text-sm">CarbonTrace Assistant</h3>
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                  <span className="text-[10px] text-emerald-500 font-medium uppercase tracking-wider">Online</span>
-                </div>
+              <div
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 12,
+                  marginTop: 3,
+                }}
+              >
+                Project support • Online
               </div>
             </div>
-            <button 
-              onClick={() => setIsOpen(false)}
-              className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#10b981",
+                boxShadow: "0 0 12px rgba(16,185,129,.8)",
+              }}
+            />
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar">
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`shrink-0 p-2 rounded-lg h-fit ${msg.role === 'user' ? 'bg-primary/10 text-primary' : 'bg-slate-800 text-slate-400'}`}>
-                    {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+          <div
+            className="carbon-chat-scroll"
+            style={{
+              flex: 1,
+              padding: 16,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            {messages.length === 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  marginBottom: 4,
+                }}
+              >
+                {quickActions.map((action) => (
+                  <button
+                    key={action}
+                    onClick={() => sendMessage(action)}
+                    disabled={typing}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 999,
+                      border: "1px solid rgba(16,185,129,.25)",
+                      background: "rgba(16,185,129,.08)",
+                      color: "#a7f3d0",
+                      fontSize: 12,
+                      cursor: typing ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {action}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexDirection: msg.type === "user" ? "row-reverse" : "row",
+                  alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "92%",
+                  animation: "carbon-message-entry .25s ease forwards",
+                }}
+              >
+                {msg.type === "bot" ? <BotAvatar /> : <UserAvatar />}
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#94a3b8",
+                      marginBottom: 4,
+                      textAlign: msg.type === "user" ? "right" : "left",
+                    }}
+                  >
+                    {msg.type === "bot" ? "Assistant" : "You"}
                   </div>
-                  <div className={`p-3 rounded-2xl text-sm whitespace-pre-wrap ${
-                    msg.role === 'user' 
-                      ? 'bg-primary text-dark font-medium rounded-tr-none shadow-lg' 
-                      : 'bg-slate-800/80 text-slate-200 border border-white/5 rounded-tl-none'
-                  }`}>
+
+                  <div
+                    style={{
+                      background:
+                        msg.type === "user" ? COLORS.userBg : COLORS.botBg,
+                      color:
+                        msg.type === "user" ? COLORS.userText : COLORS.botText,
+                      padding: "11px 14px",
+                      borderRadius:
+                        msg.type === "user"
+                          ? "16px 16px 4px 16px"
+                          : "16px 16px 16px 4px",
+                      border:
+                        msg.type === "bot"
+                          ? "1px solid rgba(255,255,255,.08)"
+                          : "none",
+                      fontSize: 14,
+                      lineHeight: 1.5,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
                     {msg.text}
                   </div>
                 </div>
               </div>
             ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="flex gap-2 max-w-[85%]">
-                  <div className="shrink-0 p-2 rounded-lg h-fit bg-slate-800 text-slate-400">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div className="p-3 rounded-2xl bg-slate-800/80 text-slate-400 border border-white/5 rounded-tl-none">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  </div>
+
+            {typing && (
+              <div style={{ display: "flex", gap: 10 }}>
+                <BotAvatar />
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 5,
+                    background: COLORS.botBg,
+                    padding: "13px 16px",
+                    borderRadius: "16px 16px 16px 4px",
+                    border: "1px solid rgba(255,255,255,.08)",
+                  }}
+                >
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: "#10b981",
+                        animation: `carbon-dot 1.2s infinite ease-in-out ${i * 0.2
+                          }s`,
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
-          </div>
 
-          {/* Quick Chips */}
-          <div className="px-5 py-2 flex gap-2 overflow-x-auto no-scrollbar border-t border-white/5 bg-slate-900/40">
-            {quickQuestions.map((q, idx) => (
-              <button 
-                key={idx}
-                onClick={() => handleSend(q.value)}
-                className="whitespace-nowrap px-3 py-1.5 rounded-full bg-slate-800/50 hover:bg-primary/20 text-slate-300 hover:text-primary border border-white/5 hover:border-primary/30 text-[11px] font-medium transition-all"
+            {error && (
+              <div
+                style={{
+                  color: "#fbbf24",
+                  fontSize: 12,
+                  textAlign: "center",
+                }}
               >
-                {q.label}
-              </button>
-            ))}
+                {error}
+              </div>
+            )}
+
+            <div ref={chatEndRef} />
           </div>
 
-          {/* Input */}
-          <div className="p-4 bg-slate-900/60 border-t border-white/5">
-            <form 
-              onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-              className="relative group"
+          <div
+            style={{
+              padding: 14,
+              borderTop: "1px solid rgba(255,255,255,.08)",
+              display: "flex",
+              gap: 10,
+              background: "rgba(15,23,42,.9)",
+            }}
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask about CarbonTrace..."
+              disabled={typing}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !typing) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              style={{
+                flex: 1,
+                padding: "13px 14px",
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,.1)",
+                background: "#020617",
+                color: "#f9fafb",
+                outline: "none",
+                fontSize: 14,
+              }}
+            />
+
+            <button
+              onClick={() => sendMessage()}
+              disabled={!input.trim() || typing}
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                border: "none",
+                background:
+                  !input.trim() || typing
+                    ? "rgba(148,163,184,.25)"
+                    : "linear-gradient(135deg,#10b981,#059669)",
+                color: !input.trim() || typing ? "#94a3b8" : "#020617",
+                cursor: !input.trim() || typing ? "not-allowed" : "pointer",
+                fontWeight: 900,
+              }}
             >
-              <input 
-                type="text" 
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={i18n.language === 'hi' ? 'इन्वेंट्री, शिपमेंट के बारे में पूछें...' : i18n.language === 'es' ? 'Preguntar sobre inventario, envíos...' : 'Ask about inventory, shipments...'}
-                className="w-full bg-slate-800/50 border border-slate-700/50 rounded-2xl py-3 pl-4 pr-12 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all"
-              />
-              <button 
-                type="submit"
-                disabled={!input.trim() || loading}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-primary hover:bg-emerald-400 text-dark rounded-xl transition-all disabled:opacity-50 disabled:hover:bg-primary"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </form>
+              ➤
+            </button>
           </div>
         </div>
       )}
-
-      {/* Floating Button */}
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className={`p-4 rounded-2xl shadow-2xl transition-all duration-300 flex items-center gap-2 group ${
-          isOpen ? 'bg-slate-800 text-white rotate-90' : 'bg-primary text-dark hover:scale-110 active:scale-95'
-        }`}
-      >
-        {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
-        {!isOpen && (
-          <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 font-bold whitespace-nowrap">
-            {i18n.language === 'hi' ? 'AI के साथ चैट करें' : i18n.language === 'es' ? 'Chatea con AI' : 'Chat with AI'}
-          </span>
-        )}
-      </button>
-    </div>
+    </>
   );
-};
-
-export default ChatbotWidget;
+}

@@ -79,12 +79,25 @@ router.post('/', protect, shipmentValidationRules(), validate, async (req, res, 
     // 3. Calculate Emission
     let carbonEmissionKg = 0;
     const dist = parseFloat(distanceKm);
-    const eFactor = parseFloat(emissionFactor);
+    let eFactor = parseFloat(emissionFactor);
 
-    if (!isNaN(eFactor) && !isNaN(dist)) {
+    const BACKEND_EMISSION_FACTORS = {
+      "truck": 0.105, "mini_truck": 0.09, "van": 0.16, "pickup": 0.11, "bike": 0.04,
+      "car": 0.12, "rail": 0.04, "ship": 0.015,
+      "air_cargo": 0.60, "container_truck": 0.13, "refrigerated_truck": 0.15
+    };
+
+    if (isNaN(eFactor) || eFactor === 0) {
+      if (optimizationData.currentEmissionKg > 0 && dist > 0) {
+        eFactor = optimizationData.currentEmissionKg / dist;
+      } else {
+        eFactor = BACKEND_EMISSION_FACTORS[vehicleType] || 0.1; // Default fallback 0.1
+        console.warn(`[Shipment] Missing emissionFactor for ${vehicleType}. Using fallback: ${eFactor}`);
+      }
+    }
+
+    if (!isNaN(dist) && dist > 0) {
       carbonEmissionKg = dist * eFactor;
-    } else {
-      carbonEmissionKg = optimizationData.currentEmissionKg || 0;
     }
 
     // 4. Create Shipment
@@ -120,11 +133,16 @@ router.post('/', protect, shipmentValidationRules(), validate, async (req, res, 
 });
 
 // @desc    Update shipment status
-// @route   PATCH /api/shipments/:id/status
+// @route   PUT /api/shipments/:id/status
 // @access  Private
-router.patch('/:id/status', protect, async (req, res, next) => {
+router.put('/:id/status', protect, async (req, res, next) => {
   try {
     const { status } = req.body;
+
+    if (!["Pending", "In Transit", "Delivered"].includes(status)) {
+      return res.status(400).json({ success: false, message: "Invalid status" });
+    }
+
     let shipment = await Shipment.findById(req.params.id);
 
     if (!shipment) {

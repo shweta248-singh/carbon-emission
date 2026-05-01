@@ -34,10 +34,7 @@ const Login = () => {
       <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-700/10 blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-md p-8 glass-card rounded-3xl relative z-10 m-4 shadow-[0_0_40px_rgba(16,185,129,0.05)] border border-white/10">
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-primary/20 p-3 rounded-2xl border border-primary/30 mb-4 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-            <Leaf className="w-8 h-8 text-primary" />
-          </div>
+        <div className="flex flex-col items-center mb-8 text-center">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent tracking-tight">
             {t('auth.login_title', 'Welcome back to CarbonTrace')}
           </h2>

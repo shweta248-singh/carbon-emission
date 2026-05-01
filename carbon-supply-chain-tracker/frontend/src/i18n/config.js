@@ -16,7 +16,13 @@ i18n
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false
+    },
+    parseMissingKeyHandler: (key) => {
+      const parts = key.split('.');
+      const lastPart = parts[parts.length - 1];
+      return lastPart.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
   });
+
 
 export default i18n;

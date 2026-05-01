@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -148,7 +149,7 @@ const Dashboard = () => {
     }
 
     // Delayed shipment alerts
-    const pendingShipments = shipments.filter(s => s.status === 'pending');
+    const pendingShipments = shipments.filter(s => s.status?.toLowerCase() === 'pending');
     if (pendingShipments.length > 0) {
       alerts.push({
         type: 'slate',
@@ -318,11 +319,11 @@ const Dashboard = () => {
                     <td className="px-4 py-3">{shipment.destination}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${
-                        shipment.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                        shipment.status === 'in_transit' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                        shipment.status?.toLowerCase() === 'delivered' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                        shipment.status?.toLowerCase() === 'in_transit' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                         'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       }`}>
-                        {t(`common.${shipment.status}`) || shipment.status?.replace('_', ' ').toUpperCase()}
+                        {shipment.status === 'In Transit' ? 'IN TRANSIT' : shipment.status?.toUpperCase()}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-white font-medium">{shipment.carbonEmissionKg?.toFixed(1) || 0} kg</td>

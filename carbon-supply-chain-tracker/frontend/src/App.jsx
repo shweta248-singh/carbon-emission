@@ -16,8 +16,10 @@ import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
 import LoadingSpinner from './components/LoadingSpinner';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, hideSidebar = false }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const token = localStorage.getItem('token');
+  const isLoggedIn = !!token;
 
   return (
     <div className="min-h-screen bg-darker text-white">
@@ -26,18 +28,22 @@ const Layout = ({ children }) => {
       <div className="fixed bottom-[-10%] right-[-10%] w-[30%] h-[30%] rounded-full bg-emerald-700/10 blur-[100px] pointer-events-none z-0"></div>
       
       <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       
-      {/* Overlay for mobile sidebar */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
+      {isLoggedIn && !hideSidebar && (
+        <>
+          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+          {/* Overlay for mobile sidebar */}
+          {isSidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+        </>
       )}
       
-      <main className="pl-0 lg:pl-[260px] pt-[72px] min-h-screen z-10 relative transition-all duration-300">
-        <div className="p-4 md:p-8 max-w-7xl mx-auto">
+      <main className={`${isLoggedIn && !hideSidebar ? 'pl-0 lg:pl-[260px]' : 'pl-0'} pt-[72px] min-h-screen z-10 relative transition-all duration-300`}>
+        <div className="p-0 md:p-0 max-w-full mx-auto">
           {children}
         </div>
       </main>
@@ -53,6 +59,18 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       const token = localStorage.getItem('token');
+      // Set language from localStorage even if not logged in (for guests)
+      const guestLng = localStorage.getItem('i18nextLng');
+      if (guestLng && i18n.language !== guestLng) {
+        await i18n.changeLanguage(guestLng);
+      }
+      
+      const guestTheme = localStorage.getItem('theme') || 'dark';
+      if (!token) {
+        if (guestTheme === 'light') document.documentElement.classList.add('light');
+        else document.documentElement.classList.remove('light');
+      }
+
       if (token) {
         try {
           const response = await api.get('/users/me');
@@ -94,10 +112,10 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        {/* Public Routes with Layout */}
+        <Route path="/" element={<Layout hideSidebar><LandingPage /></Layout>} />
+        <Route path="/login" element={<Layout hideSidebar><Login /></Layout>} />
+        <Route path="/register" element={<Layout hideSidebar><Register /></Layout>} />
         
         {/* Protected Dashboard Routes */}
         <Route

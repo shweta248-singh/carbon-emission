@@ -25,7 +25,7 @@ const OperationsHub = () => {
   // Map VEHICLE_TYPES to the format expected by the UI
   const VEHICLE_DATA = VEHICLE_TYPES.reduce((acc, v) => {
     acc[v.id] = { 
-      label: t(`vehicles.${v.id}`) || v.label, 
+      label: t(`vehicles.${v.id}`, v.label), 
       icon: v.icon, 
       color: v.color, 
       bg: v.bg 
@@ -55,6 +55,7 @@ const OperationsHub = () => {
     averageMileage: '', emissionFactor: '', driverName: '', transportCompany: ''
   });
   const [formLoading, setFormLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const fetchData = async () => {
     setLoading(true);
@@ -98,6 +99,42 @@ const OperationsHub = () => {
 
   const handleShipmentSubmit = async (e) => {
     e.preventDefault();
+    setErrors({});
+    
+    // Frontend Validation
+    const newErrors = {};
+    const vehicleNumRegex = /^[A-Z]{2}[0-9]{1,2}\s?[A-Z]{1,2}\s?[0-9]{4}$/i;
+    
+    if (!shipmentFormData.vehicleNumber || !vehicleNumRegex.test(shipmentFormData.vehicleNumber.trim())) {
+      newErrors.vehicleNumber = "Enter a valid vehicle number, e.g. UP32 AB 1234";
+    }
+    
+    if (!shipmentFormData.vehicleModel || shipmentFormData.vehicleModel.trim().length < 2) {
+      newErrors.vehicleModel = "Vehicle model must be at least 2 characters";
+    }
+    
+    const allowedFuels = ['Diesel', 'Petrol', 'CNG', 'Electric', 'Hybrid'];
+    if (!allowedFuels.includes(shipmentFormData.fuelType)) {
+      newErrors.fuelType = "Invalid fuel type";
+    }
+    
+    if (shipmentFormData.loadCapacity) {
+      const load = parseFloat(shipmentFormData.loadCapacity);
+      if (isNaN(load) || load < 0.1 || load > 50) {
+        newErrors.loadCapacity = "Load capacity must be between 0.1 and 50 Tons";
+      }
+    }
+    
+    const distance = parseFloat(shipmentFormData.distanceKm);
+    if (isNaN(distance) || distance < 1 || distance > 20000) {
+      newErrors.distanceKm = "Distance must be between 1 and 20000 km";
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    
     setFormLoading(true);
     try {
       const payload = {
@@ -116,10 +153,23 @@ const OperationsHub = () => {
         vehicleNumber: '', vehicleModel: '', fuelType: 'Diesel', loadCapacity: '', 
         averageMileage: '', emissionFactor: '', driverName: '', transportCompany: ''
       });
+      setErrors({});
     } catch (err) {
       alert(err.response?.data?.message || t('shipments.create_error'));
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const updateStatus = async (id, newStatus) => {
+    try {
+      await api.put(`/shipments/${id}/status`, {
+        status: newStatus
+      });
+      await fetchData();
+    } catch (err) {
+      console.error('Update status error:', err);
+      alert(t('shipments.update_error') || 'Failed to update shipment status');
     }
   };
 
@@ -159,11 +209,12 @@ const OperationsHub = () => {
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'delivered': return <Badge type="success">{t('common.delivered')}</Badge>;
-      case 'in_transit': return <Badge type="warning">{t('common.in_transit')}</Badge>;
-      case 'cancelled': return <Badge type="error">{t('common.cancelled')}</Badge>;
-      default: return <Badge type="info">{t('common.pending')}</Badge>;
+    const s = status?.toLowerCase();
+    switch (s) {
+      case 'delivered': return <Badge type="success">{t('common.delivered') || 'Delivered'}</Badge>;
+      case 'in_transit': return <Badge type="warning">{t('common.in_transit') || 'In Transit'}</Badge>;
+      case 'cancelled': return <Badge type="error">{t('common.cancelled') || 'Cancelled'}</Badge>;
+      default: return <Badge type="info">{t('common.pending') || 'Pending'}</Badge>;
     }
   };
 
@@ -269,7 +320,7 @@ const OperationsHub = () => {
           {activeTab === 'inventory' ? (
             <InventoryTable t={t} data={filteredInventory} getStockBadge={getStockBadge} />
           ) : (
-            <ShipmentTable t={t} VEHICLE_DATA={VEHICLE_DATA} data={filteredShipments} getStatusBadge={getStatusBadge} />
+            <ShipmentTable t={t} VEHICLE_DATA={VEHICLE_DATA} data={filteredShipments} getStatusBadge={getStatusBadge} updateStatus={updateStatus} />
           )}
         </div>
       </div>
@@ -280,7 +331,7 @@ const OperationsHub = () => {
           <form onSubmit={handleProductSubmit} className="space-y-4">
             <FormField label={t('operations.product_name')} required value={productFormData.productName} onChange={(v) => setProductFormData({...productFormData, productName: v})} />
             <div className="grid grid-cols-2 gap-4">
-              <FormField label={t('operations.sku')} required value={productFormData.sku} onChange={(v) => setProductFormData({...productFormData, sku: v})} />
+              <FormField label={t('operations.sku')} required value={productFormData.sku} onChange={(v) => setProductFormData({...productFormData, sku: v})} placeholder={t('operations.sku_placeholder', 'e.g. PROD-001')} />
               <FormField label={t('operations.quantity')} type="number" required value={productFormData.quantity} onChange={(v) => setProductFormData({...productFormData, quantity: v})} />
             </div>
             <FormField label={t('operations.warehouse_location')} required value={productFormData.warehouseLocation} onChange={(v) => setProductFormData({...productFormData, warehouseLocation: v})} />
@@ -297,7 +348,7 @@ const OperationsHub = () => {
 
       {/* Shipment Modal */}
       {isShipmentModalOpen && (
-        <Modal title={t('operations.create_new_shipment')} onClose={() => setIsShipmentModalOpen(false)} wide>
+        <Modal title={t('operations.create_new_shipment')} onClose={() => { setIsShipmentModalOpen(false); setErrors({}); }} wide>
           <form onSubmit={handleShipmentSubmit} className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Route & Product Section */}
@@ -328,7 +379,7 @@ const OperationsHub = () => {
                     <FormField label={t('operations.dest_city')} required value={shipmentFormData.destinationCity} onChange={(v) => setShipmentFormData({...shipmentFormData, destinationCity: v})} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField label={t('operations.distance')} type="number" required value={shipmentFormData.distanceKm} onChange={(v) => setShipmentFormData({...shipmentFormData, distanceKm: v})} />
+                    <FormField label={t('operations.distance')} type="number" required value={shipmentFormData.distanceKm} onChange={(v) => setShipmentFormData({...shipmentFormData, distanceKm: v})} error={errors.distanceKm} />
                     <div className="space-y-1.5">
                       <label className="text-sm font-semibold text-slate-400">{t('operations.vehicle_type')}</label>
                       <select 
@@ -352,8 +403,8 @@ const OperationsHub = () => {
                   {t('operations.manual_profiling')}
                 </h4>
                 <div className="grid grid-cols-2 gap-4 bg-slate-900/40 p-5 rounded-2xl border border-white/5">
-                  <FormField label={t('operations.vehicle_number')} placeholder="e.g. MH-12-AB-1234" value={shipmentFormData.vehicleNumber} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleNumber: v})} />
-                  <FormField label={t('operations.vehicle_model')} placeholder="e.g. Tata Signa 5530" value={shipmentFormData.vehicleModel} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleModel: v})} />
+                  <FormField label={t('operations.vehicle_number')} placeholder="e.g. MH-12-AB-1234" value={shipmentFormData.vehicleNumber} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleNumber: v})} error={errors.vehicleNumber} />
+                  <FormField label={t('operations.vehicle_model')} placeholder="e.g. Tata Signa 5530" value={shipmentFormData.vehicleModel} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleModel: v})} error={errors.vehicleModel} />
                   
                   <div className="space-y-1.5">
                     <label className="text-sm font-semibold text-slate-400">{t('operations.fuel_type')}</label>
@@ -366,8 +417,9 @@ const OperationsHub = () => {
                         <option key={type.value} value={type.value}>{type.label}</option>
                       ))}
                     </select>
+                    {errors.fuelType && <p className="text-xs text-red-500 mt-1">{errors.fuelType}</p>}
                   </div>
-                  <FormField label={t('operations.load_capacity')} type="number" value={shipmentFormData.loadCapacity} onChange={(v) => setShipmentFormData({...shipmentFormData, loadCapacity: v})} />
+                  <FormField label={t('operations.load_capacity')} type="number" value={shipmentFormData.loadCapacity} onChange={(v) => setShipmentFormData({...shipmentFormData, loadCapacity: v})} error={errors.loadCapacity} />
                   
                   <FormField label={t('operations.avg_mileage')} type="number" value={shipmentFormData.averageMileage} onChange={(v) => setShipmentFormData({...shipmentFormData, averageMileage: v})} />
                   <FormField label={t('operations.emission_factor')} type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} />
@@ -496,8 +548,10 @@ const ShipmentTable = ({ t, VEHICLE_DATA, data, getStatusBadge }) => (
                   {React.createElement(VEHICLE_DATA[ship.vehicleType]?.icon || Truck, { className: `w-4 h-4 ${VEHICLE_DATA[ship.vehicleType]?.color || 'text-slate-400'}` })}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-white font-semibold capitalize">{t(`vehicles.${ship.vehicleType}`) || ship.vehicleType?.replace('_', ' ')}</span>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-tighter">{ship.vehicleNumber || t('operations.no_id') || 'No ID'}</span>
+                  <span className="text-white font-semibold capitalize">
+                    {t(`vehicles.${ship.vehicleType}`, ship.vehicleType?.replace('_', ' '))}
+                  </span>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-tighter">{ship.vehicleNumber || t('operations.no_id', 'No ID')}</span>
                 </div>
               </div>
             </td>
@@ -515,12 +569,40 @@ const ShipmentTable = ({ t, VEHICLE_DATA, data, getStatusBadge }) => (
                 </span>
               </div>
             </td>
-            <td className="px-6 py-5 text-right">{getStatusBadge(ship.status)}</td>
+            <td className="px-6 py-5 text-right">
+              {ship.status === "Pending" || ship.status === "pending" ? (
+                <button 
+                  onClick={() => updateStatus(ship._id, "In Transit")}
+                  className="bg-amber-500 hover:bg-amber-400 text-dark px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-amber-500/20"
+                >
+                  {t('operations.start_shipment') || 'Start Shipment'}
+                </button>
+              ) : ship.status === "In Transit" || ship.status === "in_transit" ? (
+                <button 
+                  onClick={() => updateStatus(ship._id, "Delivered")}
+                  className="bg-blue-500 hover:bg-blue-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-lg shadow-blue-500/20"
+                >
+                  {t('operations.mark_delivered') || 'Mark Delivered'}
+                </button>
+              ) : (
+                <div className="flex items-center justify-end gap-2 text-emerald-400 font-bold text-sm">
+                  <span>{t('operations.delivered_text') || 'Delivered'}</span>
+                  <CheckCircle2 size={16} />
+                </div>
+              )}
+            </td>
           </tr>
         ))}
       </tbody>
     </table>
   </div>
+);
+
+const CheckCircle2 = ({ size }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
 );
 
 const ArrowRight = ({ className }) => (
@@ -545,15 +627,16 @@ const Modal = ({ title, onClose, children, wide }) => (
   </div>
 );
 
-const FormField = ({ label, type = 'text', required, value, onChange, placeholder }) => (
+const FormField = ({ label, type = 'text', required, value, onChange, placeholder, error }) => (
   <div className="space-y-1.5">
     <label className="text-sm font-semibold text-slate-400">{label}</label>
     <input
       type={type} required={required} placeholder={placeholder}
-      className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-slate-600"
+      className={`w-full bg-slate-800/50 border ${error ? 'border-red-500/50' : 'border-white/10'} rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-slate-600`}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
+    {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
   </div>
 );
 

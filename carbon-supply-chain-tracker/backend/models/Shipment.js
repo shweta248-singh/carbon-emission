@@ -26,8 +26,8 @@ const shipmentSchema = new mongoose.Schema({
   vehicleType: {
     type: String,
     enum: [
-      'truck', 'mini_truck', 'van', 'pickup', 'bike', 'car', 'electric_van', 
-      'rail', 'ship', 'air_cargo', 'container_truck', 'refrigerated_truck', 'ev_truck'
+      'truck', 'mini_truck', 'van', 'pickup', 'bike', 'car', 
+      'rail', 'ship', 'air_cargo', 'container_truck', 'refrigerated_truck'
     ],
     required: [true, 'Please add a vehicle type'],
   },
@@ -44,8 +44,8 @@ const shipmentSchema = new mongoose.Schema({
   transportCompany: String,
   status: {
     type: String,
-    enum: ['pending', 'in_transit', 'delivered', 'cancelled'],
-    default: 'pending',
+    enum: ["Pending", "In Transit", "Delivered"],
+    default: "Pending",
   },
   carbonEmissionKg: {
     type: Number,

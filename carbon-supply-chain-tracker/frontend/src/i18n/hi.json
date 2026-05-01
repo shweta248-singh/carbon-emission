@@ -109,7 +109,7 @@
     "search_placeholder": "{{tab}} खोजें...",
     "export_csv": "CSV निर्यात करें",
     "product_details": "उत्पाद विवरण",
-    "sku": "SKU",
+    "sku": "उत्पाद आईडी",
     "stock_level": "स्टॉक स्तर",
     "location": "स्थान",
     "status": "स्थिति",
@@ -257,13 +257,11 @@
     "van": "वैन",
     "pickup": "पिकअप",
     "bike": "बाइक",
-    "electric_van": "इलेक्ट्रिक वैन",
     "rail": "रेल",
     "ship": "जहाज",
     "air_cargo": "एयर कार्गो",
     "container_truck": "कंटेनर ट्रक",
     "refrigerated_truck": "रेफ्रिजेरेटेड ट्रक",
-    "ev_truck": "EV ट्रक",
     "car": "कार"
   },
   "inventory": {

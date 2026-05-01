@@ -109,7 +109,7 @@
     "search_placeholder": "Buscar {{tab}}...",
     "export_csv": "Exportar CSV",
     "product_details": "Detalles del producto",
-    "sku": "SKU",
+    "sku": "ID de producto",
     "stock_level": "Nivel de stock",
     "location": "Ubicación",
     "status": "Estado",
@@ -257,13 +257,11 @@
     "van": "Furgoneta",
     "pickup": "Camioneta",
     "bike": "Bicicleta",
-    "electric_van": "Furgoneta eléctrica",
     "rail": "Ferrocarril",
     "ship": "Barco",
     "air_cargo": "Carga aérea",
     "container_truck": "Camión de contenedores",
     "refrigerated_truck": "Camión refrigerado",
-    "ev_truck": "Camión eléctrico",
     "car": "Coche"
   },
   "inventory": {
