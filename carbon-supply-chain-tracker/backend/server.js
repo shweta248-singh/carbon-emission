@@ -149,22 +149,19 @@ app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/notifications', require('./routes/notifications'));
 
 // Serve frontend static files in production
-if (process.env.NODE_ENV === 'production') {
-  // Set static folder
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-  app.get('*', (req, res, next) => {
-    if (req.url.startsWith('/api')) {
-      return next();
-    }
-    res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'CarbonTrace Backend Running 🚀'
   });
-} else {
-  app.get('/', (req, res) => {
-    res.send('Carbon Trace API is running securely...');
-  });
-}
+});
 
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Backend healthy'
+  });
+});
 // Centralized Error Handler
 app.use(errorHandler);
 
