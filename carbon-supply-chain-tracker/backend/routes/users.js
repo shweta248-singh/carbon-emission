@@ -116,24 +116,77 @@ router.put('/password', protect, [
 // @desc    Update preferences
 // @route   PUT /api/users/preferences
 // @access  Private
+// router.put('/preferences', protect, async (req, res, next) => {
+//   try {
+//     const { theme, defaultVehicle, carbonUnit, language } = req.body;
+
+//     const user = await User.findByIdAndUpdate(
+//       req.user.id,
+//       {
+//         preferences: { theme, defaultVehicle, carbonUnit, language }
+//       },
+//       {
+//         new: true,
+//         runValidators: true,
+//       }
+//     );
+
+//     res.json({
+//       success: true,
+//       data: user.preferences
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+
 router.put('/preferences', protect, async (req, res, next) => {
   try {
-    const { theme, defaultVehicle, carbonUnit, language } = req.body;
+    const allowedThemes = ['dark', 'light'];
+    const allowedLanguages = ['en', 'hi'];
+    const allowedCarbonUnits = ['kg', 'tons'];
+
+    const updates = {};
+
+    if (req.body.theme !== undefined) {
+      if (!allowedThemes.includes(req.body.theme)) {
+        return res.status(400).json({ success: false, message: 'Invalid theme' });
+      }
+      updates['preferences.theme'] = req.body.theme;
+    }
+
+    if (req.body.language !== undefined) {
+      if (!allowedLanguages.includes(req.body.language)) {
+        return res.status(400).json({ success: false, message: 'Invalid language' });
+      }
+      updates['preferences.language'] = req.body.language;
+    }
+
+    if (req.body.defaultVehicle !== undefined) {
+      updates['preferences.defaultVehicle'] = req.body.defaultVehicle;
+    }
+
+    if (req.body.carbonUnit !== undefined) {
+      if (!allowedCarbonUnits.includes(req.body.carbonUnit)) {
+        return res.status(400).json({ success: false, message: 'Invalid carbon unit' });
+      }
+      updates['preferences.carbonUnit'] = req.body.carbonUnit;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid preferences provided' });
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      {
-        preferences: { theme, defaultVehicle, carbonUnit, language }
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { $set: updates },
+      { new: true, runValidators: true }
     );
 
     res.json({
       success: true,
-      data: user.preferences
+      data: user.preferences,
     });
   } catch (error) {
     next(error);

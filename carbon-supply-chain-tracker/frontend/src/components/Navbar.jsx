@@ -25,13 +25,19 @@ const Navbar = ({ onToggleSidebar }) => {
     setTimeout(() => setMessage(null), 3000);
   };
 
+  // const applyTheme = (newTheme) => {
+  //   if (newTheme === 'light') {
+  //     document.documentElement.classList.add('light');
+  //   } else {
+  //     document.documentElement.classList.remove('light');
+  //   }
+  // };
+
   const applyTheme = (newTheme) => {
-    if (newTheme === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
-  };
+  const safeTheme = newTheme === 'light' ? 'light' : 'dark';
+  document.documentElement.classList.toggle('light', safeTheme === 'light');
+  localStorage.setItem('theme', safeTheme);
+};
 
   const fetchNotifications = async () => {
     if (!isLoggedIn) return;
@@ -98,19 +104,35 @@ const Navbar = ({ onToggleSidebar }) => {
     }
   };
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    applyTheme(newTheme);
-    updatePreference({ theme: newTheme });
-  };
+  // const toggleTheme = () => {
+  //   const newTheme = theme === 'dark' ? 'light' : 'dark';
+  //   setTheme(newTheme);
+  //   applyTheme(newTheme);
+  //   updatePreference({ theme: newTheme });
+  // };
 
-  const handleLanguageChange = (newLang) => {
-    setLang(newLang);
-    i18n.changeLanguage(newLang);
-    updatePreference({ language: newLang });
-    setIsLangOpen(false);
-  };
+  const toggleTheme = () => {
+  const newTheme = theme === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
+  applyTheme(newTheme);
+  updatePreference({ theme: newTheme });
+};
+
+  // const handleLanguageChange = (newLang) => {
+  //   setLang(newLang);
+  //   i18n.changeLanguage(newLang);
+  //   updatePreference({ language: newLang });
+  //   setIsLangOpen(false);
+  // };
+
+  const handleLanguageChange = async (newLang) => {
+  const safeLang = ['en', 'hi'].includes(newLang) ? newLang : 'en';
+  setLang(safeLang);
+  localStorage.setItem('i18nextLng', safeLang);
+  await i18n.changeLanguage(safeLang);
+  updatePreference({ language: safeLang });
+  setIsLangOpen(false);
+};
 
   const markAllRead = async () => {
     try {

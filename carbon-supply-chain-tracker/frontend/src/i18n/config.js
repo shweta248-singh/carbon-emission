@@ -10,7 +10,7 @@ i18n
       en: { translation: en },
       hi: { translation: hi }
     },
-    lng: 'en', // default language
+    lng: localStorage.getItem('i18nextLng') || 'en',
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false
@@ -18,9 +18,11 @@ i18n
     parseMissingKeyHandler: (key) => {
       const parts = key.split('.');
       const lastPart = parts[parts.length - 1];
-      return lastPart.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      return lastPart
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
     }
   });
-
 
 export default i18n;

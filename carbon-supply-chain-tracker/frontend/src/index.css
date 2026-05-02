@@ -33,7 +33,7 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.light {
+/* .light {
   --bg-darker: #f8fafc;
   --bg-dark: #f1f5f9;
   --bg-gradient: radial-gradient(circle at top right, #f1f5f9, #f8fafc);
@@ -46,6 +46,55 @@
   color-scheme: light;
   color: var(--text-main);
   background-color: var(--bg-darker);
+} */
+
+.light {
+  --color-darker: #f8fafc;
+  --color-dark: #f1f5f9;
+  --color-card: rgba(255, 255, 255, 0.88);
+
+  --bg-darker: #f8fafc;
+  --bg-dark: #f1f5f9;
+  --bg-gradient: radial-gradient(circle at top right, #f1f5f9, #f8fafc);
+  --text-main: #0f172a;
+  --text-dim: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.78);
+  --card-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+  --border-color: rgba(15, 23, 42, 0.12);
+
+  color-scheme: light;
+  color: var(--text-main);
+  background-color: var(--bg-darker);
+}
+
+.light body {
+  background: var(--bg-gradient);
+}
+
+.light .glass,
+.light .glass-card {
+  color: #0f172a;
+}
+
+.light .text-white {
+  color: #0f172a ;
+}
+
+.light .text-slate-300,
+.light .text-slate-400,
+.light .text-slate-500 {
+  color: #64748b ;
+}
+
+.light input,
+.light select,
+.light textarea {
+  color: #0f172a ;
+  background-color: rgba(255, 255, 255, 0.75) ;
+}
+
+.light input::placeholder {
+  color: #94a3b8 ;
 }
 
 body {
