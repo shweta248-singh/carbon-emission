@@ -4,6 +4,7 @@ const axios = require('axios');
 const Shipment = require('../models/Shipment');
 const Inventory = require('../models/Inventory');
 const { protect } = require('../middleware/auth');
+const { getShipmentSavings } = require('../utils/carbon');
 const router = express.Router();
 
 const { validate, shipmentValidationRules } = require('../middleware/validation');
@@ -11,9 +12,26 @@ const { validate, shipmentValidationRules } = require('../middleware/validation'
 // @desc    Get all shipments
 // @route   GET /api/shipments
 // @access  Private
+// router.get('/', protect, asyncHandler(async (req, res) => {
+//   const shipments = await Shipment.find({ user: req.user.id }).populate('inventoryId');
+//   res.json({ success: true, count: shipments.length, data: shipments });
+// }));
+
 router.get('/', protect, asyncHandler(async (req, res) => {
-  const shipments = await Shipment.find({ user: req.user.id }).populate('inventoryId');
-  res.json({ success: true, count: shipments.length, data: shipments });
+  const shipments = await Shipment.find({ user: req.user.id })
+    .populate('inventoryId')
+    .lean();
+
+  const formattedShipments = shipments.map((shipment) => ({
+    ...shipment,
+    savingsKg: getShipmentSavings(shipment),
+  }));
+
+  res.json({
+    success: true,
+    count: formattedShipments.length,
+    data: formattedShipments,
+  });
 }));
 
 // @desc    Get optimization preview without saving
@@ -125,7 +143,12 @@ router.post('/', protect, shipmentValidationRules(), validate, asyncHandler(asyn
     carbonEmissionKg,
     recommendedVehicle: optimizationData.recommendedVehicle || vehicleType,
     recommendedEmissionKg: optimizationData.recommendedEmissionKg || 0,
-    savingsKg: optimizationData.savingsKg || 0,
+    savingsKg: getShipmentSavings({
+  vehicleType,
+  distanceKm: dist,
+  carbonEmissionKg,
+  savingsKg: optimizationData.savingsKg,
+}),
   });
 
   // 5. Deduct Inventory
