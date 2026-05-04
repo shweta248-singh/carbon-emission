@@ -178,7 +178,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-8 fade-in pb-10">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 dark:bg-slate-900/40 p-6 rounded-2xl border border-white/5 backdrop-blur-md">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white/80 p-6 rounded-2xl border border-white/5 backdrop-blur-md">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">
             {t('dashboard.welcome') || 'Dashboard Overview'}
