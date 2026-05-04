@@ -30,8 +30,7 @@
     "search_placeholder": "Search inventory, shipments...",
     "role": "Supply Chain",
     "logout": "Logout",
-    "switch_light": "Switch to Light Mode",
-    "switch_dark": "Switch to Dark Mode",
+
     "preferences_saved": "Preferences saved",
     "notifications": "Notifications",
     "mark_all_read": "Mark all as read",
@@ -229,7 +228,7 @@
     "security_settings": "Security Settings",
     "notification_prefs": "Notification Preferences",
     "business_prefs": "Business Preferences",
-    "navbar_managed_hint": "Theme and Language are now managed from the Navbar",
+    "navbar_managed_hint": "Language is now managed from the Navbar",
     "first_name": "First Name",
     "last_name": "Last Name",
     "email": "Email Address",

@@ -34,7 +34,6 @@ const userSchema = new mongoose.Schema({
     select: false,
   },
   preferences: {
-    theme: { type: String, default: 'dark' },
     defaultVehicle: { type: String, default: 'truck' },
     carbonUnit: { type: String, default: 'kg' },
     language: { type: String, default: 'en' }

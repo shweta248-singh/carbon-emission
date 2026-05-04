@@ -8,7 +8,6 @@ const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [userName, setUserName] = useState('');
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const [lang, setLang] = useState('en');
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -25,19 +24,7 @@ const Navbar = ({ onToggleSidebar }) => {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  // const applyTheme = (newTheme) => {
-  //   if (newTheme === 'light') {
-  //     document.documentElement.classList.add('light');
-  //   } else {
-  //     document.documentElement.classList.remove('light');
-  //   }
-  // };
 
-  const applyTheme = (newTheme) => {
-  const safeTheme = newTheme === 'light' ? 'light' : 'dark';
-  document.documentElement.classList.toggle('light', safeTheme === 'light');
-  localStorage.setItem('theme', safeTheme);
-};
 
   const fetchNotifications = async () => {
     if (!isLoggedIn) return;
@@ -66,10 +53,6 @@ const Navbar = ({ onToggleSidebar }) => {
         }
         if (userData.preferences) {
           setUserPrefs(userData.preferences);
-          if (userData.preferences.theme) {
-            setTheme(userData.preferences.theme);
-            applyTheme(userData.preferences.theme);
-          }
           if (userData.preferences.language) {
             setLang(userData.preferences.language);
             i18n.changeLanguage(userData.preferences.language);
@@ -90,7 +73,6 @@ const Navbar = ({ onToggleSidebar }) => {
   const updatePreference = async (updates) => {
     if (!isLoggedIn) {
       if (updates.language) localStorage.setItem('i18nextLng', updates.language);
-      if (updates.theme) localStorage.setItem('theme', updates.theme);
       return;
     }
     try {
@@ -104,19 +86,7 @@ const Navbar = ({ onToggleSidebar }) => {
     }
   };
 
-  // const toggleTheme = () => {
-  //   const newTheme = theme === 'dark' ? 'light' : 'dark';
-  //   setTheme(newTheme);
-  //   applyTheme(newTheme);
-  //   updatePreference({ theme: newTheme });
-  // };
 
-  const toggleTheme = () => {
-  const newTheme = theme === 'dark' ? 'light' : 'dark';
-  setTheme(newTheme);
-  applyTheme(newTheme);
-  updatePreference({ theme: newTheme });
-};
 
   // const handleLanguageChange = (newLang) => {
   //   setLang(newLang);
@@ -196,14 +166,7 @@ const Navbar = ({ onToggleSidebar }) => {
       )}
 
       <div className="flex items-center gap-1 md:gap-4">
-        {/* Theme Toggle */}
-        <button 
-          onClick={toggleTheme}
-          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
-          title={theme === 'dark' ? t('navbar.switch_light') : t('navbar.switch_dark')}
-        >
-          {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-        </button>
+
 
         {/* Language Dropdown */}
         <div className="relative block">

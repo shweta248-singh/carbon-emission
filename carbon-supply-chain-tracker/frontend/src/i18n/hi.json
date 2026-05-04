@@ -30,8 +30,7 @@
     "search_placeholder": "इन्वेंट्री, शिपमेंट खोजें...",
     "role": "सप्लाई चेन",
     "logout": "लॉगआउट",
-    "switch_light": "लाइट मोड पर स्विच करें",
-    "switch_dark": "डार्क मोड पर स्विच करें",
+
     "preferences_saved": "प्राथमिकताएं सहेजी गईं",
     "notifications": "सूचनाएं",
     "mark_all_read": "सभी को पढ़ा हुआ मानें",
@@ -229,7 +228,7 @@
     "security_settings": "सुरक्षा सेटिंग्स",
     "notification_prefs": "अधिसूचना प्राथमिकताएं",
     "business_prefs": "व्यावसायिक प्राथमिकताएं",
-    "navbar_managed_hint": "थीम और भाषा अब नेविगेशन बार से प्रबंधित की जाती हैं",
+    "navbar_managed_hint": "भाषा अब नेविगेशन बार से प्रबंधित की जाती है",
     "first_name": "पहला नाम",
     "last_name": "अंतिम नाम",
     "email": "ईमेल पता",

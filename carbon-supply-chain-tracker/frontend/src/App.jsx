@@ -64,7 +64,7 @@ function App() {
         await i18n.changeLanguage(guestLng);
       }
       
-      const guestTheme = localStorage.getItem('theme') || 'dark';
+
       
       try {
         // Production-grade: check session via /users/me (uses HttpOnly cookie)
@@ -75,23 +75,13 @@ function App() {
         localStorage.setItem('user', JSON.stringify(user));
         
         if (user.preferences) {
-          const { language, theme } = user.preferences;
-          
           if (language && i18n.language !== language) {
             await i18n.changeLanguage(language);
-          }
-          
-          if (theme === 'light') {
-            document.documentElement.classList.add('light');
-          } else {
-            document.documentElement.classList.remove('light');
           }
         }
       } catch (err) {
         // Not logged in or session expired
         localStorage.removeItem('user');
-        if (guestTheme === 'light') document.documentElement.classList.add('light');
-        else document.documentElement.classList.remove('light');
       } finally {
         setInitializing(false);
       }
