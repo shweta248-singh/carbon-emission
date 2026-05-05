@@ -55,8 +55,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
 
       styleSrc: [
         "'self'",
@@ -84,8 +83,11 @@ app.use(helmet({
         "https://api.openrouteservice.org",
         "https://fonts.googleapis.com",
         "https://fonts.gstatic.com",
-        process.env.FRONTEND_URL,
-        process.env.BACKEND_URL
+        "https://carbon-backend-fs9x.onrender.com",
+        "https://carbon-emission-1-dyuv.onrender.com",
+        "https://carbon-emission-2-dz5c.onrender.com",
+        "http://localhost:5173",
+        "http://localhost:5000"
       ].filter(Boolean),
     },
   },
@@ -162,19 +164,27 @@ app.use('/api/operations', require('./routes/operations'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/notifications', require('./routes/notifications'));
 
-// Serve frontend static files in production
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'CarbonTrace Backend Running 🚀'
-  });
-});
+// Serve frontend static files
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendDistPath));
 
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     message: 'Backend healthy'
   });
+});
+
+// Serve index.html for all non-API routes (SPA support)
+app.get('*', (req, res) => {
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(404).json({
+      success: false,
+      message: 'API route not found'
+    });
+  }
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 // Centralized Error Handler
 app.use(errorHandler);
