@@ -91,4 +91,38 @@ router.get(
   })
 );
 
+// @desc    Get emissions by vehicle type aggregation
+// @route   GET /api/analytics/emissions-by-vehicle-type
+// @access  Private
+router.get(
+  '/emissions-by-vehicle-type',
+  protect,
+  asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    const emissionsByVehicle = await Shipment.aggregate([
+      { $match: { user: new require('mongoose').Types.ObjectId(userId) } },
+      {
+        $group: {
+          _id: '$vehicleType',
+          totalEmission: { $sum: '$carbonEmissionKg' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          vehicleType: '$_id',
+          totalEmission: { $round: ['$totalEmission', 2] },
+        },
+      },
+      { $sort: { totalEmission: -1 } },
+    ]);
+
+    res.json({
+      success: true,
+      data: emissionsByVehicle,
+    });
+  })
+);
+
 module.exports = router;

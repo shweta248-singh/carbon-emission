@@ -14,18 +14,28 @@ const Analytics = () => {
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [vehicleEmissions, setVehicleEmissions] = useState([]);
+  const [chartError, setChartError] = useState(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [dashboardRes, vehicleRes] = await Promise.all([
+        api.get('/analytics/dashboard'),
+        api.get('/analytics/emissions-by-vehicle-type')
+      ]);
+      setData(dashboardRes.data.data);
+      setVehicleEmissions(vehicleRes.data.data);
+      setChartError(null);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      setChartError('Failed to load analytics data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get('/analytics/dashboard');
-        setData(response.data.data);
-      } catch (error) {
-        console.error('Error fetching analytics:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
@@ -33,12 +43,51 @@ const Analytics = () => {
 
   const emissionHistory = data?.monthlyTrends || [];
 
-  const vehicleComparison = [
-    { name: 'Truck', emission: 120, avgDistance: 500 },
-    { name: 'Van', emission: 80, avgDistance: 200 },
-    { name: 'Rail', emission: 40, avgDistance: 1200 },
-    { name: 'Ship', emission: 20, avgDistance: 3000 },
-  ];
+  const renderVehicleChart = () => {
+    if (chartError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-slate-500 py-20">
+          <Activity className="w-12 h-12 mb-3 opacity-20" />
+          <p>{chartError}</p>
+        </div>
+      );
+    }
+
+    if (vehicleEmissions.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-slate-500 py-20">
+          <Leaf className="w-12 h-12 mb-3 opacity-20" />
+          <p className="text-center font-medium">No emission data available yet.<br/><span className="text-sm opacity-60">Create shipments to view analytics.</span></p>
+        </div>
+      );
+    }
+
+    return (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={vehicleEmissions} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+          <XAxis 
+            dataKey="vehicleType" 
+            stroke="#94a3b8" 
+            tickFormatter={(val) => t(`vehicles.${val}`, val?.replace('_', ' ')) || val}
+            style={{ fontSize: '12px', fontWeight: 'bold' }}
+          />
+          <YAxis stroke="#94a3b8" label={{ value: 'kg CO2e', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: '12px' }} />
+          <Tooltip
+            contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px' }}
+            cursor={{ fill: '#334155', opacity: 0.4 }}
+            itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
+            formatter={(value) => [`${value} kg CO2e`, 'Total Emission']}
+          />
+          <Bar dataKey="totalEmission" fill="#10b981" radius={[6, 6, 0, 0]}>
+            {vehicleEmissions.map((entry, index) => (
+              <rect key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#34d399'} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
 
   return (
     <div className="space-y-6 fade-in">
@@ -110,22 +159,8 @@ const Analytics = () => {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title={t('analytics.vehicle_comparison_chart')}>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={vehicleComparison} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis yAxisId="left" orientation="left" stroke="#94a3b8" />
-              <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                cursor={{ fill: '#334155', opacity: 0.4 }}
-              />
-              <Legend />
-              <Bar yAxisId="left" dataKey="emission" fill="#f59e0b" name={t('analytics.avg_emission_label')} radius={[4, 4, 0, 0]} />
-              <Bar yAxisId="right" dataKey="avgDistance" fill="#3b82f6" name={t('analytics.avg_distance_label')} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <ChartCard title="Total Emissions by Vehicle Type">
+          {renderVehicleChart()}
         </ChartCard>
       </div>
 
