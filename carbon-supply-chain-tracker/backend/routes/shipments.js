@@ -62,19 +62,12 @@ router.post('/optimize', protect, shipmentValidationRules(), validate, asyncHand
 // @access  Private
 router.post('/', protect, shipmentValidationRules(), validate, asyncHandler(async (req, res) => {
   const { 
-    inventoryId, originCity, destinationCity, distanceKm, vehicleType, 
+    inventoryId, originCity, destinationCity, distanceKm, vehicleType, vehicleCategory,
     quantity = 1,
-    vehicleNumber, vehicleModel, fuelType, loadCapacity, 
-    averageMileage, emissionFactor, driverName, transportCompany 
+    vehicleNumber, vehicleModel, fuelType, loadCapacity, cargoWeight, loadUtilization,
+    averageMileage, energyConsumption, emissionFactor, driverName, transportCompany,
+    vesselType, railType, aircraftType
   } = req.body;
-
-  // Feasibility Check
-  if (distanceKm > 5000 && ['truck', 'van', 'car', 'bike', 'mini_truck', 'pickup'].includes(vehicleType)) {
-    return res.status(400).json({ 
-      success: false, 
-      message: `${vehicleType.replace('_', ' ')} is not feasible for distances over 5000km.` 
-    });
-  }
 
   // 1. Check Inventory
   const inventoryItem = await Inventory.findById(inventoryId);
@@ -90,39 +83,75 @@ router.post('/', protect, shipmentValidationRules(), validate, asyncHandler(asyn
     return res.status(400).json({ success: false, message: 'Insufficient inventory quantity' });
   }
 
-  // 2. Call Python Optimizer Engine
+  // 2. Advanced Emission Calculation Logic
+  let carbonEmissionKg = 0;
+  let emissionFactorUsed = 0;
+  let calculationMethod = '';
+  const dist = parseFloat(distanceKm);
+  const weight = parseFloat(cargoWeight) || 0;
+  const manualFactor = parseFloat(emissionFactor);
+
+  const FUEL_FACTORS = {
+    'Petrol': 2.31,
+    'Diesel': 2.68,
+    'CNG': 2.75,
+    'LPG': 1.51
+  };
+  const ELECTRIC_FACTOR = 0.716; // kg CO2e/kWh
+
+  const TON_KM_FACTORS = {
+    'Rail': { 'Diesel Freight': 0.027, 'Electric Freight': 0.012 },
+    'Ship': { 'Container Ship': 0.016, 'Bulk Carrier': 0.006, 'Tanker': 0.008, 'General Cargo': 0.021 },
+    'Air': { 'default': 0.602 }
+  };
+
+  if (manualFactor > 0) {
+    emissionFactorUsed = manualFactor;
+    calculationMethod = 'Manual Override';
+    if (vehicleCategory === 'Road') {
+      if (fuelType === 'Electric') {
+        carbonEmissionKg = dist * (parseFloat(energyConsumption) || 0) * manualFactor;
+      } else {
+        carbonEmissionKg = (dist / (parseFloat(averageMileage) || 1)) * manualFactor;
+      }
+    } else {
+      carbonEmissionKg = dist * weight * manualFactor;
+    }
+  } else {
+    calculationMethod = 'System Default';
+    if (vehicleCategory === 'Road') {
+      if (fuelType === 'Electric') {
+        emissionFactorUsed = ELECTRIC_FACTOR;
+        const energyUsed = dist * (parseFloat(energyConsumption) || 0);
+        carbonEmissionKg = energyUsed * emissionFactorUsed;
+      } else {
+        emissionFactorUsed = FUEL_FACTORS[fuelType] || 2.68;
+        const fuelUsed = dist / (parseFloat(averageMileage) || 1);
+        carbonEmissionKg = fuelUsed * emissionFactorUsed;
+      }
+    } else if (vehicleCategory === 'Rail') {
+      emissionFactorUsed = TON_KM_FACTORS.Rail[railType] || 0.027;
+      carbonEmissionKg = dist * weight * emissionFactorUsed;
+    } else if (vehicleCategory === 'Ship') {
+      emissionFactorUsed = TON_KM_FACTORS.Ship[vesselType] || 0.016;
+      carbonEmissionKg = dist * weight * emissionFactorUsed;
+    } else if (vehicleCategory === 'Air') {
+      emissionFactorUsed = TON_KM_FACTORS.Air.default;
+      carbonEmissionKg = dist * weight * emissionFactorUsed;
+    }
+  }
+
+  // 3. Call Python Optimizer Engine (Optional/Background)
   let optimizationData = {};
   try {
     const response = await axios.post(`${process.env.OPTIMIZER_URL}/optimize`, {
       distanceKm,
       vehicleType
-    }, { timeout: 10000 });
+    }, { timeout: 5000 });
     optimizationData = response.data;
   } catch (err) {
     console.error('Optimizer Engine Error:', err.message);
-    // Fallback logic handled below
   }
-
-  // 3. Calculate Emission
-  let carbonEmissionKg = 0;
-  const dist = parseFloat(distanceKm);
-  let eFactor = parseFloat(emissionFactor);
-
-  const BACKEND_EMISSION_FACTORS = {
-    "truck": 0.105, "mini_truck": 0.09, "van": 0.16, "pickup": 0.11, "bike": 0.04,
-    "car": 0.12, "rail": 0.04, "ship": 0.015,
-    "air_cargo": 0.60, "container_truck": 0.13, "refrigerated_truck": 0.15
-  };
-
-  if (isNaN(eFactor) || eFactor === 0) {
-    if (optimizationData.currentEmissionKg > 0 && dist > 0) {
-      eFactor = optimizationData.currentEmissionKg / dist;
-    } else {
-      eFactor = BACKEND_EMISSION_FACTORS[vehicleType] || 0.1;
-    }
-  }
-
-  carbonEmissionKg = dist * eFactor;
 
   // 4. Create Shipment
   const shipment = await Shipment.create({
@@ -130,32 +159,50 @@ router.post('/', protect, shipmentValidationRules(), validate, asyncHandler(asyn
     inventoryId,
     origin: originCity,
     destination: destinationCity,
-    distanceKm,
+    distanceKm: dist,
     vehicleType,
+    vehicleCategory,
     vehicleNumber,
     vehicleModel,
     fuelType,
     loadCapacity,
+    cargoWeight: weight,
+    loadUtilization,
     averageMileage,
-    emissionFactor,
+    energyConsumption,
+    emissionFactor: manualFactor || undefined,
+    emissionFactorUsed,
+    calculationMethod,
     driverName,
     transportCompany,
+    vesselType,
+    railType,
+    aircraftType,
     carbonEmissionKg,
     recommendedVehicle: optimizationData.recommendedVehicle || vehicleType,
     recommendedEmissionKg: optimizationData.recommendedEmissionKg || 0,
-    savingsKg: getShipmentSavings({
-  vehicleType,
-  distanceKm: dist,
-  carbonEmissionKg,
-  savingsKg: optimizationData.savingsKg,
-}),
+    status: 'Pending'
   });
+
+  // Calculate savings for the response/storage
+  shipment.savingsKg = getShipmentSavings({
+    vehicleType,
+    distanceKm: dist,
+    carbonEmissionKg,
+    savingsKg: optimizationData.savingsKg,
+  });
+  await shipment.save();
 
   // 5. Deduct Inventory
   inventoryItem.quantity -= quantity;
   await inventoryItem.save();
 
-  res.status(201).json({ success: true, data: shipment });
+  res.status(201).json({ 
+    success: true, 
+    data: shipment,
+    calculatedEmission: carbonEmissionKg,
+    emissionFactorUsed: emissionFactorUsed
+  });
 }));
 
 // @desc    Update shipment status

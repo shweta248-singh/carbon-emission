@@ -41,21 +41,11 @@ const shipmentValidationRules = () => {
     body('destinationCity').trim().notEmpty().withMessage('Destination city is required').escape(),
     body('distanceKm')
       .isNumeric().withMessage('Distance must be a number')
-      .custom(val => val >= 1 && val <= 20000).withMessage('Distance must be between 1 and 20000 km'),
+      .custom(val => val > 0 && val <= 20000).withMessage('Distance must be between 0.1 and 20000 km'),
     body('vehicleType').notEmpty().withMessage('Vehicle type is required').escape(),
-    body('vehicleNumber')
-      .trim().notEmpty().withMessage('Vehicle number is required')
-      .matches(/^[A-Z]{2}[0-9]{1,2}\s?[A-Z]{1,2}\s?[0-9]{4}$/i).withMessage('Enter a valid vehicle number, e.g. UP32 AB 1234').escape(),
-    body('vehicleModel')
-      .trim().notEmpty().withMessage('Vehicle model is required')
-      .isLength({ min: 2 }).withMessage('Vehicle model must be at least 2 characters').escape(),
-    body('fuelType')
-      .notEmpty().withMessage('Fuel type is required')
-      .isIn(['Diesel', 'Petrol', 'CNG', 'Electric', 'Hybrid']).withMessage('Invalid fuel type'),
-    body('loadCapacity')
-      .optional({ checkFalsy: true })
-      .isNumeric().withMessage('Load capacity must be a number')
-      .custom(val => val >= 0.1 && val <= 50).withMessage('Load capacity must be between 0.1 and 50 Tons'),
+    body('vehicleCategory').notEmpty().withMessage('Vehicle category is required').escape(),
+    // Conditional validation can be complex in express-validator, 
+    // so we'll do basic checks here and detailed logic in the controller if needed.
   ];
 };
 
