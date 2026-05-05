@@ -74,9 +74,9 @@ function App() {
         // Sync local user data
         localStorage.setItem('user', JSON.stringify(user));
         
-        if (user.preferences) {
-          if (language && i18n.language !== language) {
-            await i18n.changeLanguage(language);
+        if (user.preferences && user.preferences.language) {
+          if (i18n.language !== user.preferences.language) {
+            await i18n.changeLanguage(user.preferences.language);
           }
         }
       } catch (err) {
@@ -88,7 +88,7 @@ function App() {
     };
 
     initializeApp();
-  }, [i18n]);
+  }, []);
 
   if (initializing) {
     return (

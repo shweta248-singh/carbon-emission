@@ -53,7 +53,7 @@ const Navbar = ({ onToggleSidebar }) => {
         }
         if (userData.preferences) {
           setUserPrefs(userData.preferences);
-          if (userData.preferences.language) {
+          if (userData.preferences.language && i18n.language !== userData.preferences.language) {
             setLang(userData.preferences.language);
             i18n.changeLanguage(userData.preferences.language);
           }
@@ -68,7 +68,7 @@ const Navbar = ({ onToggleSidebar }) => {
     // Refresh notifications every 2 minutes
     const interval = setInterval(fetchNotifications, 120000);
     return () => clearInterval(interval);
-  }, [isLoggedIn, i18n]);
+  }, [isLoggedIn]);
 
   const updatePreference = async (updates) => {
     if (!isLoggedIn) {
