@@ -1,19 +1,19 @@
 FROM node:20-alpine
 
-# Set working directory
+# Set working directory to /app
 WORKDIR /app
 
-# Copy dependency files
+# Copy package files first to leverage Docker cache
 COPY package*.json ./
 
 # Install only production dependencies
 RUN npm ci --omit=dev
 
-# Copy the rest of the backend code
+# Copy all files from backend directory to /app
 COPY . .
 
-# Expose the port the app runs on
+# Expose backend port
 EXPOSE 5000
 
-# Start the application
-CMD ["npm", "start"]
+# Start server using node directly as requested
+CMD ["node", "server.js"]
