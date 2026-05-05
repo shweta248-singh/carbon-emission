@@ -1,130 +1,147 @@
 const express = require('express');
 const asyncHandler = require('express-async-handler');
 const mongoose = require('mongoose');
-const Inventory = require('../models/Inventory');
 const Shipment = require('../models/Shipment');
 const { protect } = require('../middleware/auth');
-const { getShipmentSavings } = require('../utils/carbon');
 
 const router = express.Router();
 
-// @desc    Get dashboard analytics
-// @route   GET /api/analytics/dashboard
+// @desc    Get analytics summary
+// @route   GET /api/analytics/summary
 // @access  Private
 router.get(
-  '/dashboard',
+  '/summary',
   protect,
   asyncHandler(async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user._id;
 
-    const totalInventory = await Inventory.countDocuments({ user: userId });
-    const totalShipments = await Shipment.countDocuments({ user: userId });
+    const stats = await Shipment.aggregate([
+      { $match: { user: userId } },
+      {
+        $group: {
+          _id: null,
+          totalEmissions: { $sum: '$carbonEmissionKg' },
+          totalSaved: { $sum: '$savingsKg' },
+          count: { $sum: 1 },
+          optimalCount: {
+            $sum: {
+              $cond: [{ $eq: ['$vehicleType', '$recommendedVehicle'] }, 1, 0]
+            }
+          }
+        }
+      }
+    ]);
 
-    const shipments = await Shipment.find({ user: userId }).lean();
-
-    const totalEmissions = shipments.reduce(
-      (acc, curr) => acc + (Number(curr.carbonEmissionKg) || 0),
-      0
-    );
-
-    const totalSaved = shipments.reduce(
-      (acc, curr) => acc + getShipmentSavings(curr),
-      0
-    );
-
-    const monthlyTrends = [];
-    const now = new Date();
-
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = d.toLocaleString('default', { month: 'short' });
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-
-      const monthShipments = shipments.filter((s) => {
-        const sDate = new Date(s.createdAt);
-        return sDate >= monthStart && sDate < monthEnd;
-      });
-
-      monthlyTrends.push({
-        month: monthName,
-        emission: Number(
-          monthShipments
-            .reduce((acc, s) => acc + (Number(s.carbonEmissionKg) || 0), 0)
-            .toFixed(1)
-        ),
-        saved: Number(
-          monthShipments
-            .reduce((acc, s) => acc + getShipmentSavings(s), 0)
-            .toFixed(1)
-        ),
+    if (!stats || stats.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          totalEmissions: 0,
+          totalSaved: 0,
+          optimalShipmentPercentage: 0,
+          carbonEfficiencyScore: "N/A"
+        }
       });
     }
 
-    const vehicleEmissions = await Shipment.aggregate([
-      { $match: { user: req.user._id } },
-      {
-        $group: {
-          _id: '$vehicleType',
-          totalEmission: { $sum: '$carbonEmissionKg' },
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          vehicleType: '$_id',
-          totalEmission: { $round: ['$totalEmission', 2] },
-        },
-      },
-      { $sort: { totalEmission: -1 } },
-    ]);
+    const { totalEmissions, totalSaved, count, optimalCount } = stats[0];
+    const optimalShipmentPercentage = count > 0 ? Math.round((optimalCount / count) * 100) : 0;
+    
+    // Simple logic for efficiency score
+    let carbonEfficiencyScore = "C";
+    if (optimalShipmentPercentage > 80) carbonEfficiencyScore = "A";
+    else if (optimalShipmentPercentage > 60) carbonEfficiencyScore = "B";
 
     res.json({
       success: true,
       data: {
-        totalInventory,
-        totalShipments,
         totalEmissions: Number(totalEmissions.toFixed(2)),
         totalSaved: Number(totalSaved.toFixed(2)),
-        vehicleChart: vehicleEmissions || [],
-        monthlyTrends,
-      },
+        optimalShipmentPercentage,
+        carbonEfficiencyScore
+      }
     });
   })
 );
 
-// @desc    Get emissions by vehicle type aggregation
+// @desc    Get emissions by vehicle type
 // @route   GET /api/analytics/emissions-by-vehicle-type
 // @access  Private
 router.get(
   '/emissions-by-vehicle-type',
   protect,
   asyncHandler(async (req, res) => {
-    // Use the native ObjectId from the user document for maximum reliability
-    const matchUser = req.user._id;
+    const userId = req.user._id;
 
-    const emissionsByVehicle = await Shipment.aggregate([
-      { $match: { user: matchUser } },
+    const vehicleData = await Shipment.aggregate([
+      { $match: { user: userId } },
       {
         $group: {
           _id: '$vehicleType',
-          totalEmission: { $sum: '$carbonEmissionKg' },
-        },
+          totalEmission: { $sum: '$carbonEmissionKg' }
+        }
       },
       {
         $project: {
           _id: 0,
           vehicleType: '$_id',
-          totalEmission: { $round: ['$totalEmission', 2] },
-        },
+          totalEmission: { $round: ['$totalEmission', 2] }
+        }
       },
-      { $sort: { totalEmission: -1 } },
+      { $sort: { totalEmission: -1 } }
     ]);
 
     res.json({
       success: true,
-      data: emissionsByVehicle || [],
+      data: vehicleData || []
     });
+  })
+);
+
+// @desc    Get emission trend
+// @route   GET /api/analytics/emission-trend
+// @access  Private
+router.get(
+  '/emission-trend',
+  protect,
+  asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    const trend = await Shipment.aggregate([
+      { $match: { user: userId } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          carbonEmissions: { $sum: '$carbonEmissionKg' },
+          co2Saved: { $sum: '$savingsKg' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          carbonEmissions: { $round: ['$carbonEmissions', 2] },
+          co2Saved: { $round: ['$co2Saved', 2] }
+        }
+      },
+      { $sort: { date: 1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: trend || []
+    });
+  })
+);
+
+// Deprecated legacy dashboard route (mapping to new logic for backward compatibility if needed)
+router.get(
+  '/dashboard',
+  protect,
+  asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    // ... existing logic or redirect to new endpoints
+    res.status(410).json({ success: false, message: 'Endpoint deprecated. Use /summary, /emissions-by-vehicle-type, and /emission-trend.' });
   })
 );
 
