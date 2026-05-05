@@ -19,17 +19,15 @@ const Analytics = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setChartError(null);
     try {
-      const [dashboardRes, vehicleRes] = await Promise.all([
-        api.get('/analytics/dashboard'),
-        api.get('/analytics/emissions-by-vehicle-type')
-      ]);
-      setData(dashboardRes.data.data);
-      setVehicleEmissions(vehicleRes.data.data);
-      setChartError(null);
+      const response = await api.get('/analytics/dashboard');
+      const analyticsData = response.data.data;
+      setData(analyticsData);
+      setVehicleEmissions(analyticsData.vehicleChart || []);
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      setChartError('Failed to load analytics data. Please try again later.');
+      setChartError('Failed to load sustainability metrics. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -96,6 +94,13 @@ const Analytics = () => {
           <h1 className="text-3xl font-bold text-white tracking-tight">{t('analytics.title') || 'Sustainability Analytics'}</h1>
           <p className="text-slate-400 mt-1">{t('analytics.subtitle') || 'Deep dive into your carbon footprint and operational efficiency.'}</p>
         </div>
+        <button 
+          onClick={fetchData}
+          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl border border-white/10 transition-all text-sm font-medium"
+        >
+          <Activity className="w-4 h-4" />
+          {t('common.refresh') || 'Refresh Data'}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
