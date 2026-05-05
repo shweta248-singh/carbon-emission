@@ -58,6 +58,84 @@ const OperationsHub = () => {
   });
   const [formLoading, setFormLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [estimatedData, setEstimatedData] = useState({
+    emission: 0,
+    factor: 0,
+    fuelUsed: 0,
+    energyUsed: 0,
+    method: ''
+  });
+
+  // Real-time calculation logic
+  useEffect(() => {
+    const calcEstimate = () => {
+      const selectedVehicle = VEHICLE_TYPES.find(v => v.id === shipmentFormData.vehicleType);
+      const category = selectedVehicle?.category || 'Road';
+      const dist = parseFloat(shipmentFormData.distanceKm) || 0;
+      const weight = parseFloat(shipmentFormData.cargoWeight) || 0;
+      const manualFactor = parseFloat(shipmentFormData.emissionFactor) || 0;
+      
+      let emission = 0;
+      let factor = 0;
+      let fuelUsed = 0;
+      let energyUsed = 0;
+      let method = manualFactor > 0 ? 'Manual' : 'Default';
+
+      const FUEL_FACTORS = { 'Petrol': 2.31, 'Diesel': 2.68, 'CNG': 2.75, 'LPG': 1.51 };
+      const ELECTRIC_FACTOR = 0.716;
+      const TON_KM_FACTORS = {
+        'Rail': { 'Diesel Freight': 0.027, 'Electric Freight': 0.012 },
+        'Ship': { 'Container Ship': 0.016, 'Bulk Carrier': 0.006, 'Tanker': 0.008, 'General Cargo': 0.021 },
+        'Air': { 'default': 0.602 }
+      };
+
+      if (manualFactor > 0) {
+        factor = manualFactor;
+        if (category === 'Road') {
+          if (shipmentFormData.fuelType === 'Electric') {
+            energyUsed = dist * (parseFloat(shipmentFormData.energyConsumption) || 0);
+            emission = energyUsed * manualFactor;
+          } else {
+            fuelUsed = dist / (parseFloat(shipmentFormData.averageMileage) || 1);
+            emission = fuelUsed * manualFactor;
+          }
+        } else {
+          emission = dist * weight * manualFactor;
+        }
+      } else {
+        if (category === 'Road') {
+          if (shipmentFormData.fuelType === 'Electric') {
+            factor = ELECTRIC_FACTOR;
+            energyUsed = dist * (parseFloat(shipmentFormData.energyConsumption) || 0);
+            emission = energyUsed * factor;
+          } else {
+            factor = FUEL_FACTORS[shipmentFormData.fuelType] || 2.68;
+            fuelUsed = dist / (parseFloat(shipmentFormData.averageMileage) || 1);
+            emission = fuelUsed * factor;
+          }
+        } else if (category === 'Rail') {
+          factor = TON_KM_FACTORS.Rail[shipmentFormData.railType] || 0.027;
+          emission = dist * weight * factor;
+        } else if (category === 'Ship') {
+          factor = TON_KM_FACTORS.Ship[shipmentFormData.vesselType] || 0.016;
+          emission = dist * weight * factor;
+        } else if (category === 'Air') {
+          factor = TON_KM_FACTORS.Air.default;
+          emission = dist * weight * factor;
+        }
+      }
+
+      setEstimatedData({
+        emission: Math.round(emission * 100) / 100,
+        factor,
+        fuelUsed: Math.round(fuelUsed * 100) / 100,
+        energyUsed: Math.round(energyUsed * 100) / 100,
+        method
+      });
+    };
+
+    if (isShipmentModalOpen) calcEstimate();
+  }, [shipmentFormData, isShipmentModalOpen]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -103,8 +181,13 @@ const OperationsHub = () => {
     e.preventDefault();
     setErrors({});
     
+    const newErrors = {};
     const selectedVehicle = VEHICLE_TYPES.find(v => v.id === shipmentFormData.vehicleType);
     const category = selectedVehicle?.category || 'Road';
+
+    if (!shipmentFormData.inventoryId) newErrors.inventoryId = "Please select a product";
+    if (!shipmentFormData.originCity) newErrors.originCity = "Origin city is required";
+    if (!shipmentFormData.destinationCity) newErrors.destinationCity = "Destination city is required";
 
     if (parseFloat(shipmentFormData.distanceKm) <= 0) {
       newErrors.distanceKm = "Distance must be greater than 0";
@@ -113,34 +196,30 @@ const OperationsHub = () => {
     if (category === 'Road') {
       if (shipmentFormData.fuelType === 'Electric') {
         if (!shipmentFormData.energyConsumption || parseFloat(shipmentFormData.energyConsumption) <= 0) {
-          newErrors.energyConsumption = "Energy consumption is required for electric vehicles";
+          newErrors.energyConsumption = "Energy consumption is required";
         }
       } else {
         if (!shipmentFormData.averageMileage || parseFloat(shipmentFormData.averageMileage) <= 0) {
-          newErrors.averageMileage = "Mileage is required for fuel vehicles";
+          newErrors.averageMileage = "Mileage is required";
         }
       }
       
       const loadUtil = parseFloat(shipmentFormData.loadUtilization);
       if (shipmentFormData.loadUtilization && (isNaN(loadUtil) || loadUtil < 0 || loadUtil > 100)) {
-        newErrors.loadUtilization = "Load utilization must be between 0 and 100";
+        newErrors.loadUtilization = "0–100 only";
       }
 
-      // Cargo weight is required for freight road vehicles
-      if (['truck', 'mini_truck', 'container_truck', 'refrigerated_truck'].includes(shipmentFormData.vehicleType)) {
-        if (!shipmentFormData.cargoWeight || parseFloat(shipmentFormData.cargoWeight) <= 0) {
-          newErrors.cargoWeight = "Cargo weight is required for trucks";
-        }
+      if (!shipmentFormData.cargoWeight || parseFloat(shipmentFormData.cargoWeight) <= 0) {
+        newErrors.cargoWeight = "Weight is required";
       }
     } else {
-      // Rail, Ship, Air
       if (!shipmentFormData.cargoWeight || parseFloat(shipmentFormData.cargoWeight) <= 0) {
-        newErrors.cargoWeight = "Cargo weight must be greater than 0";
+        newErrors.cargoWeight = "Weight must be > 0";
       }
     }
 
     if (shipmentFormData.emissionFactor && parseFloat(shipmentFormData.emissionFactor) <= 0) {
-      newErrors.emissionFactor = "Emission factor override must be positive";
+      newErrors.emissionFactor = "Must be positive";
     }
     
     if (Object.keys(newErrors).length > 0) {
@@ -381,7 +460,7 @@ const OperationsHub = () => {
                     <label className="text-sm font-semibold text-slate-400">{t('operations.select_product')}</label>
                     <select 
                       required
-                      className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50"
+                      className={`w-full bg-slate-800/50 border ${errors.inventoryId ? 'border-red-500/50' : 'border-white/10'} rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50`}
                       value={shipmentFormData.inventoryId}
                       onChange={(e) => setShipmentFormData({...shipmentFormData, inventoryId: e.target.value})}
                     >
@@ -392,6 +471,7 @@ const OperationsHub = () => {
                         </option>
                       ))}
                     </select>
+                    {errors.inventoryId && <p className="text-xs text-red-500 mt-1">{errors.inventoryId}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <FormField label={t('operations.origin_city')} required value={shipmentFormData.originCity} onChange={(v) => setShipmentFormData({...shipmentFormData, originCity: v})} />
@@ -434,7 +514,6 @@ const OperationsHub = () => {
                     if (cat === 'Rail') {
                       return (
                         <>
-                          <FormField label="Train / Wagon ID" value={shipmentFormData.vehicleNumber} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleNumber: v})} />
                           <div className="space-y-1.5">
                             <label className="text-sm font-semibold text-slate-400">Rail Type</label>
                             <select 
@@ -447,8 +526,7 @@ const OperationsHub = () => {
                             </select>
                           </div>
                           <FormField label="Cargo Weight (Tons)" type="number" value={shipmentFormData.cargoWeight} onChange={(v) => setShipmentFormData({...shipmentFormData, cargoWeight: v})} error={errors.cargoWeight} />
-                          <FormField label="Operator Name" value={shipmentFormData.driverName} onChange={(v) => setShipmentFormData({...shipmentFormData, driverName: v})} />
-                          <FormField label="Emission Factor Override (kg CO2e/ton-km)" type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} error={errors.emissionFactor} />
+                          <FormField label="Emission Factor Override" type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} error={errors.emissionFactor} />
                         </>
                       );
                     }
@@ -456,7 +534,6 @@ const OperationsHub = () => {
                     if (cat === 'Ship') {
                       return (
                         <>
-                          <FormField label="Vessel Name / IMO Number" value={shipmentFormData.vehicleNumber} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleNumber: v})} />
                           <div className="space-y-1.5">
                             <label className="text-sm font-semibold text-slate-400">Vessel Type</label>
                             <select 
@@ -470,21 +547,8 @@ const OperationsHub = () => {
                               <option value="General Cargo">General Cargo</option>
                             </select>
                           </div>
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-slate-400">Fuel Type</label>
-                            <select 
-                              className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-primary/50"
-                              value={shipmentFormData.fuelType}
-                              onChange={(e) => setShipmentFormData({...shipmentFormData, fuelType: e.target.value})}
-                            >
-                              <option value="HFO">HFO</option>
-                              <option value="MDO">MDO</option>
-                              <option value="LNG">LNG</option>
-                            </select>
-                          </div>
                           <FormField label="Cargo Weight (Tons)" type="number" value={shipmentFormData.cargoWeight} onChange={(v) => setShipmentFormData({...shipmentFormData, cargoWeight: v})} error={errors.cargoWeight} />
-                          <FormField label="Shipping Company" value={shipmentFormData.transportCompany} onChange={(v) => setShipmentFormData({...shipmentFormData, transportCompany: v})} />
-                          <FormField label="Emission Factor Override (kg CO2e/ton-km)" type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} error={errors.emissionFactor} />
+                          <FormField label="Emission Factor Override" type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} error={errors.emissionFactor} />
                         </>
                       );
                     }
@@ -492,11 +556,8 @@ const OperationsHub = () => {
                     if (cat === 'Air') {
                       return (
                         <>
-                          <FormField label="Flight / Airway Bill Number" value={shipmentFormData.vehicleNumber} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleNumber: v})} />
-                          <FormField label="Aircraft Type" value={shipmentFormData.aircraftType} onChange={(v) => setShipmentFormData({...shipmentFormData, aircraftType: v})} />
                           <FormField label="Cargo Weight (Tons)" type="number" value={shipmentFormData.cargoWeight} onChange={(v) => setShipmentFormData({...shipmentFormData, cargoWeight: v})} error={errors.cargoWeight} />
-                          <FormField label="Airline / Cargo Operator" value={shipmentFormData.transportCompany} onChange={(v) => setShipmentFormData({...shipmentFormData, transportCompany: v})} />
-                          <FormField label="Emission Factor Override (kg CO2e/ton-km)" type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} error={errors.emissionFactor} />
+                          <FormField label="Emission Factor Override" type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} error={errors.emissionFactor} />
                         </>
                       );
                     }
@@ -504,9 +565,6 @@ const OperationsHub = () => {
                     // Default: Road
                     return (
                       <>
-                        <FormField label={t('operations.vehicle_number')} placeholder="e.g. MH-12-AB-1234" value={shipmentFormData.vehicleNumber} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleNumber: v})} error={errors.vehicleNumber} />
-                        <FormField label={t('operations.vehicle_model')} placeholder="e.g. Tata Signa 5530" value={shipmentFormData.vehicleModel} onChange={(v) => setShipmentFormData({...shipmentFormData, vehicleModel: v})} error={errors.vehicleModel} />
-                        
                         <div className="space-y-1.5">
                           <label className="text-sm font-semibold text-slate-400">{t('operations.fuel_type')}</label>
                           <select 
@@ -531,18 +589,15 @@ const OperationsHub = () => {
                           </select>
                         </div>
 
-                        <FormField label="Load Capacity (Tons)" type="number" value={shipmentFormData.loadCapacity} onChange={(v) => setShipmentFormData({...shipmentFormData, loadCapacity: v})} />
                         <FormField label="Cargo Weight (Tons)" type="number" value={shipmentFormData.cargoWeight} onChange={(v) => setShipmentFormData({...shipmentFormData, cargoWeight: v})} error={errors.cargoWeight} />
-                        <FormField label="Load Utilization (%)" type="number" value={shipmentFormData.loadUtilization} onChange={(v) => setShipmentFormData({...shipmentFormData, loadUtilization: v})} error={errors.loadUtilization} />
                         
                         {shipmentFormData.fuelType === 'Electric' ? (
                           <FormField label="Energy Consumption (kWh/km)" type="number" value={shipmentFormData.energyConsumption} onChange={(v) => setShipmentFormData({...shipmentFormData, energyConsumption: v})} error={errors.energyConsumption} />
                         ) : (
                           <FormField label="Average Mileage (km/L)" type="number" value={shipmentFormData.averageMileage} onChange={(v) => setShipmentFormData({...shipmentFormData, averageMileage: v})} error={errors.averageMileage} />
                         )}
-                        
-                        <FormField label="Driver Name" value={shipmentFormData.driverName} onChange={(v) => setShipmentFormData({...shipmentFormData, driverName: v})} />
-                        <FormField label="Transport Company" value={shipmentFormData.transportCompany} onChange={(v) => setShipmentFormData({...shipmentFormData, transportCompany: v})} />
+
+                        <FormField label="Load Utilization (%)" type="number" value={shipmentFormData.loadUtilization} onChange={(v) => setShipmentFormData({...shipmentFormData, loadUtilization: v})} error={errors.loadUtilization} />
                         <FormField label="Emission Factor Override" type="number" value={shipmentFormData.emissionFactor} onChange={(v) => setShipmentFormData({...shipmentFormData, emissionFactor: v})} error={errors.emissionFactor} />
                       </>
                     );
@@ -551,9 +606,52 @@ const OperationsHub = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 bg-primary/10 p-4 rounded-xl border border-primary/20">
+            {/* Real-time Calculation Display */}
+            <div className="bg-slate-900/60 rounded-3xl p-6 border border-white/10 space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h4 className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Estimated Carbon Footprint</h4>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-black text-white">{estimatedData.emission}</span>
+                    <span className="text-primary font-bold text-lg">kg CO2e</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${estimatedData.method === 'Manual' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
+                    {estimatedData.method} Calculation
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-white/5">
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Distance</p>
+                  <p className="text-sm text-white font-semibold">{shipmentFormData.distanceKm || 0} km</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Cargo Weight</p>
+                  <p className="text-sm text-white font-semibold">{shipmentFormData.cargoWeight || 0} Tons</p>
+                </div>
+                {VEHICLE_TYPES.find(v => v.id === shipmentFormData.vehicleType)?.category === 'Road' && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">
+                      {shipmentFormData.fuelType === 'Electric' ? 'Energy Used' : 'Fuel Used'}
+                    </p>
+                    <p className="text-sm text-white font-semibold">
+                      {shipmentFormData.fuelType === 'Electric' ? `${estimatedData.energyUsed} kWh` : `${estimatedData.fuelUsed} L`}
+                    </p>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Emission Factor</p>
+                  <p className="text-sm text-primary font-bold">{estimatedData.factor}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 bg-primary/5 p-4 rounded-xl border border-primary/10">
               <Info className="w-5 h-5 text-primary shrink-0" />
-              <p className="text-sm text-slate-300">{t('operations.emission_factor_hint')}</p>
+              <p className="text-xs text-slate-400">This estimate is based on standard emission factors. Final results may vary based on real-time optimization.</p>
             </div>
 
             <button type="submit" disabled={formLoading} className="w-full bg-primary hover:bg-emerald-400 text-dark py-4 rounded-2xl font-bold text-xl transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2">
