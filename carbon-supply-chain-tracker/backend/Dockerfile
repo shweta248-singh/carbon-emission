@@ -1,33 +1,19 @@
-# Stage 1: Build Frontend
-FROM node:22-alpine AS frontend-build
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm ci
-COPY frontend/ .
-RUN npm run build
+FROM node:20-alpine
 
-# Stage 2: Backend Runtime
-FROM node:22-alpine
+# Set working directory
 WORKDIR /app
 
-# Set to production
-ENV NODE_ENV=production
+# Copy dependency files
+COPY package*.json ./
 
-# Copy backend dependency files
-COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --only=production
+# Install only production dependencies
+RUN npm ci --omit=dev
 
-# Copy backend code
-COPY backend ./backend
+# Copy the rest of the backend code
+COPY . .
 
-# Copy frontend build artifacts from Stage 1
-COPY --from=frontend-build /app/frontend/dist ./frontend/dist
-
-# Use non-root user
-USER node
-
+# Expose the port the app runs on
 EXPOSE 5000
 
-# Start backend from its directory
-WORKDIR /app/backend
+# Start the application
 CMD ["npm", "start"]
